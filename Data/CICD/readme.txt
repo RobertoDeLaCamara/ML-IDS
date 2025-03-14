@@ -1,0 +1,10 @@
+Benign		0
+Analysis	1	
+Backdoor	2
+DoS		3
+Exploits	4
+Fuzzers		5
+Generic		6
+Reconnaissance	7
+Shellcode	8
+Worms		9
