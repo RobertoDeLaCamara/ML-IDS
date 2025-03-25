@@ -5,7 +5,7 @@ import mlflow
 import os
 from unittest.mock import Mock, patch, MagicMock
 from sklearn.pipeline import Pipeline
-from model_trainer import ModelTrainer
+from src.model_trainer import ModelTrainer
 
 @pytest.fixture
 def sample_data():
