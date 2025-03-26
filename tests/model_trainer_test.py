@@ -6,6 +6,7 @@ import os
 from unittest.mock import Mock, patch, MagicMock
 from sklearn.pipeline import Pipeline
 from src.model_trainer import ModelTrainer
+import logging
 
 @pytest.fixture
 def sample_data():
