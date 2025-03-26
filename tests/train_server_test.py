@@ -6,7 +6,6 @@ import numpy as np
 from unittest.mock import Mock, patch, MagicMock
 import io
 import sys
-#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.train_server import app,load_csv
 import os
 
