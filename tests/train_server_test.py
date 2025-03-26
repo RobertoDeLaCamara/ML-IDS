@@ -19,8 +19,8 @@ def test_client():
 def real_csv_files():
     """Load actual Data.csv and Label.csv files from repository"""
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(repo_root, 'data', 'Data.csv')
-    label_path = os.path.join(repo_root, 'data', 'Label.csv')
+    data_path = os.path.join(repo_root, 'data/CICD', 'Data.csv')
+    label_path = os.path.join(repo_root, 'data/CICD', 'Label.csv')
     
     # Verify files exist
     assert os.path.exists(data_path), f"Data file not found at {data_path}"
