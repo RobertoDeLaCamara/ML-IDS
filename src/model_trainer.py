@@ -66,36 +66,12 @@ class ModelTrainer:
             mlflow.set_tracking_uri(self.mlflow_uri)
             mlflow.set_experiment(self.experiment_name)
             self.logger.info(f"MLflow experiment '{self.experiment_name}' set up successfully")
-            
-            self.pipeline = self._load_model() if os.path.exists(self.model_path) else None
-            if self.pipeline:
-                self.logger.info("Existing model loaded successfully")
-            else:
-                self.logger.info("No existing model found")
-                
+                            
         except Exception as e:
             self.logger.error(f"Error during initialization: {str(e)}", exc_info=True)
             raise
 
-    def _load_model(self):
-        """
-        Load a pre-trained model from the specified file path.
-
-        Returns
-        -------
-        object
-            The loaded model object.
-
-        Raises
-        ------
-        Exception
-            If there is an error loading the model, an exception is raised and logged.
-        """
-        try:
-            return joblib.load(self.model_path)
-        except Exception as e:
-            self.logger.error(f"Error loading model from {self.model_path}: {str(e)}", exc_info=True)
-            raise
+    
 
     def train(self, X: pd.DataFrame, y: pd.Series) -> dict:
         """
@@ -134,6 +110,12 @@ class ModelTrainer:
             with mlflow.start_run(run_name="RandomForest_Weighted") as run:
                 self.logger.info(f"MLflow run started with run_id: {run.info.run_id}")
                 
+                #Log the training dataset
+                dataset = pd.concat([X_train, y_train], axis=1)
+                dataset.columns = [*X.columns, y.name]
+                dataset.to_csv("dataset.csv", index=False)
+                mlflow.log_artifact("dataset.csv")
+                                
                 # Log parameters
                 params = {
                     "n_estimators": 100,
@@ -175,11 +157,8 @@ class ModelTrainer:
                     sk_model=self.pipeline,
                     artifact_path="model",
                     registered_model_name="CICD_IDS_Model"
-                )
+                )             
                 
-                # Save model locally
-                joblib.dump(self.pipeline, self.model_path)
-                self.logger.info(f"Model saved locally to {self.model_path}")
                 
             return {
                 "message": "Model trained and registered in MLflow",
