@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import numpy as np
 import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
@@ -15,7 +14,6 @@ from logging.handlers import RotatingFileHandler
 
 class ModelTrainer:
     def __init__(self, mlflow_uri: str = "http://192.168.1.86:5050", log_level=logging.INFO):
-        # Set up logging
         """
         Initialize the ModelTrainer.
 
@@ -32,6 +30,7 @@ class ModelTrainer:
         If an existing model is found, it is loaded.
         If an error occurs during initialization, an exception is raised.
         """
+        # Initialize logging
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(log_level)
         
@@ -55,6 +54,7 @@ class ModelTrainer:
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
         
+        # ML-Flow settings to be logged
         self.model_path = "model.pkl"
         self.experiment_name = "CICD_IDS_Model_v1"
         self.mlflow_uri = mlflow_uri
