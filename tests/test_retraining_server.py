@@ -13,4 +13,4 @@ def test_retrain_endpoint():
     response = client.post("/retrain")
     assert response.status_code == 200
     assert "detail" in response.json()
-    assert response.json()["detail"] == "Retraining not implemented"
+    assert response.json()["detail"] == "retraining not implemented yet"
