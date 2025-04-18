@@ -30,7 +30,7 @@ def test_predict_valid():
         "Flow IAT Min": 0.0,
     }
     response = client.post("/predict", json=features)
-    assert response.status_code in (200, 503)
+    assert response.status_code in (200)
     if response.status_code == 200:
         assert "prediction" in response.json()
     elif response.status_code == 503:
