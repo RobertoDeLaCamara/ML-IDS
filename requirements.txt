@@ -137,3 +137,15 @@ Werkzeug==3.1.3
 wheel==0.45.1
 wrapt==1.17.2
 zipp==3.21.0
+
+# General requirements for development and notebooks
+jupyter
+notebook
+pandas
+matplotlib
+seaborn
+scikit-learn
+mlflow
+plotly
+ipykernel
+python-multipart
