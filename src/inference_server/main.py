@@ -4,10 +4,38 @@ import os
 
 app = FastAPI()
 
-model_initialized = False
+@app.get("/")
+async def root():
+    """
+    Root endpoint for the inference server.
 
+    :return: A JSON response with a message indicating that the inference server is running.
+    """
+
+    return {"message": "Inference server is running."}
+
+@app.get("/health")
+async def health():
+    """
+    Health check endpoint to verify if the server is running and if the model is initialized.
+
+    :return: A JSON response indicating the server is healthy and the model initialization status.
+    """
+    global model_initialized
+    return {"status": "healthy", "model_initialized": model_initialized}
 
 def init_model():
+    """
+    Initialize the model by loading it from MLflow model registry.
+
+    This function is global in scope and should only be called once, as it
+    sets the global variables `model` and `model_initialized`.
+
+    If the model is not available, it raises an HTTPException with a 503
+    status code.
+
+    :raises: HTTPException
+    """
     global model, model_initialized
     import mlflow
     from mlflow.exceptions import MlflowException
@@ -24,6 +52,18 @@ def init_model():
 
 @app.post("/predict")
 def predict(features: dict):
+    """
+    Make a prediction with the model.
+
+    This function will be called for every inference request. It is
+    responsible for loading the model (if it has not been loaded before)
+    and running the prediction.
+
+    :param features: The input features as a dictionary.
+    :return: The prediction as a dictionary containing a single key
+             "prediction" with a value of a list of predicted classes.
+    :raises: HTTPException if the model is not available.
+    """
     global model_initialized, model
     if not model_initialized:
         try:
@@ -35,3 +75,12 @@ def predict(features: dict):
     df = pd.DataFrame([features])
     prediction = model.predict(df)
     return {"prediction": prediction.tolist()}
+
+
+model_initialized = False
+# Attempt to initialize the model when the server starts
+try:
+    init_model()
+except Exception as e:
+    # The model is not available at startup, it will be retried on the first request
+    pass
