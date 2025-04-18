@@ -44,6 +44,8 @@ def init_model():
     global model, model_initialized
     import mlflow
     from mlflow.exceptions import MlflowException
+    # Set remote MLflow tracking URI
+    mlflow.set_tracking_uri("http://192.168.1.86:5050")
     os.environ["MLFLOW_S3_ENDPOINT_URL"] = "http://192.168.1.189:9000"
     os.environ["AWS_ACCESS_KEY_ID"] = "roberto"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "patilla1"
