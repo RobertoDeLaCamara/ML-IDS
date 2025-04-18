@@ -5,9 +5,8 @@ client = TestClient(app)
 
 def test_predict_valid():
     """
-    Simulates a valid input with the first columns of the dataset
-    and verifies that the inference server returns a valid prediction.
-    The input must contain all the necessary columns for the prediction.
+    Simula una petición válida y verifica que el servidor responde correctamente
+    dependiendo de si el modelo está inicializado o no.
     """
     features = {
         "Flow Duration": 1000,
@@ -29,19 +28,29 @@ def test_predict_valid():
         "Flow IAT Std": 100.0,
         "Flow IAT Max": 1000.0,
         "Flow IAT Min": 0.0,
-        # ...add more features as needed 
-        # to match the model's expected input   
     }
     response = client.post("/predict", json=features)
-    assert response.status_code == 200 or response.status_code == 503
+    assert response.status_code in (200, 503)
     if response.status_code == 200:
         assert "prediction" in response.json()
+    elif response.status_code == 503:
+        assert "Model not available" in response.json()["detail"]
 
 def test_predict_invalid():
     """
-    Simulates an invalid input with missing or incorrect columns
-    and verifies that the inference server returns an error response.
-    The input must not contain all the necessary columns for the prediction.
+    Simula una petición inválida (faltan campos) y verifica que el servidor responde
+    con error 422 (validación) o 503 (modelo no disponible).
     """
     response = client.post("/predict", json={})
-    assert response.status_code in (200, 422, 503)
+    assert response.status_code in (422, 503)
+    if response.status_code == 503:
+        assert "Model not available" in response.json()["detail"]
+
+def test_health_endpoint():
+    """
+    Verifica que el endpoint /health refleja el estado de model_initialized.
+    """
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert "model_initialized" in response.json()
+    assert isinstance(response.json()["model_initialized"], bool)
