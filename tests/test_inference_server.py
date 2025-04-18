@@ -1,11 +1,14 @@
-import pytest
 from fastapi.testclient import TestClient
 from src.inference_server.main import app
 
 client = TestClient(app)
 
 def test_predict_valid():
-    # Simula un input válido con las primeras columnas del dataset
+    """
+    Simulates a valid input with the first columns of the dataset
+    and verifies that the inference server returns a valid prediction.
+    The input must contain all the necessary columns for the prediction.
+    """
     features = {
         "Flow Duration": 1000,
         "Total Fwd Packet": 2,
@@ -26,13 +29,18 @@ def test_predict_valid():
         "Flow IAT Std": 100.0,
         "Flow IAT Max": 1000.0,
         "Flow IAT Min": 0.0,
-        # ...agrega el resto de las features necesarias...
+        # ...add more features as needed 
+        # to match the model's expected input   
     }
     response = client.post("/predict", json=features)
     assert response.status_code == 200
     assert "prediction" in response.json()
 
 def test_predict_invalid():
-    # Input vacío o inválido
+    """
+    Simulates an invalid input with missing or incorrect columns
+    and verifies that the inference server returns an error response.
+    The input must not contain all the necessary columns for the prediction.
+    """
     response = client.post("/predict", json={})
     assert response.status_code == 200 or response.status_code == 422
