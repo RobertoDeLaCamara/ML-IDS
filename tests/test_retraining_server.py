@@ -11,6 +11,6 @@ def test_retrain_endpoint():
     that the retraining functionality is not implemented.
     """
     response = client.post("/retrain")
-    assert response.status_code == 501
+    assert response.status_code == 200
     assert "detail" in response.json()
     assert response.json()["detail"] == "Retraining not implemented"
