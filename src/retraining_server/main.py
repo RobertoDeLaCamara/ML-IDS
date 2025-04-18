@@ -8,4 +8,4 @@ def retrain():
     """
     Fake retrain endpoint. Does nothing for now.
     """
-    return JSONResponse(content={"status": "retraining not implemented yet"}, status_code=200)
+    return JSONResponse(content={"detail": "retraining not implemented yet"}, status_code=200)
