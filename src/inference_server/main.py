@@ -76,6 +76,9 @@ def predict(features: dict):
     """
     logger.info("Predict endpoint called with features: %s", features)
     global model_initialized, model
+    if not features or not isinstance(features, dict):
+        logger.error("Prediction failed: No features provided.")
+        raise HTTPException(status_code=400, detail="No features provided for prediction.")
     if not model_initialized:
         logger.warning("Model not initialized. Attempting to initialize.")
         try:
@@ -87,6 +90,9 @@ def predict(features: dict):
         logger.error("Prediction failed: Model not available.")
         raise HTTPException(status_code=503, detail="Model not available.")
     df = pd.DataFrame([features])
+    if df.empty or df.shape[1] == 0:
+        logger.error("Prediction failed: Features DataFrame is empty or has no columns.")
+        raise HTTPException(status_code=400, detail="Invalid or empty features for prediction.")
     prediction = model.predict(df)
     logger.info("Prediction result: %s", prediction.tolist())
     return {"prediction": prediction.tolist()}
