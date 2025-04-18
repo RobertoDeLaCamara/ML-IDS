@@ -25,8 +25,8 @@ async def health():
 
     :return: A JSON response indicating the server is healthy and the model initialization status.
     """
-    logger.info("Health endpoint called. model_initialized=%s", model_initialized)
     global model_initialized
+    logger.info("Health endpoint called. model_initialized=%s", model_initialized)
     return {"status": "healthy", "model_initialized": model_initialized}
 
 def init_model():
