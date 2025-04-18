@@ -31,10 +31,16 @@ def test_predict_valid():
     }
     response = client.post("/predict", json=features)
     assert response.status_code in (200)
-    if response.status_code == 200:
-        assert "prediction" in response.json()
-    elif response.status_code == 503:
-        assert "Model not available" in response.json()["detail"]
+    assert "prediction" in response.json()
+    
+
+def test_model_not_initialized():
+    """
+    Simula una petición y verifica que el servidor responde con error 503
+    (modelo no disponible).
+    """
+    response = client.post("/predict", json={})
+    assert response.status_code == 503
 
 def test_predict_invalid():
     """
