@@ -78,7 +78,7 @@ def predict(features: dict):
     global model_initialized, model
     if not features or not isinstance(features, dict):
         logger.error("Prediction failed: No features provided.")
-        raise HTTPException(status_code=400, detail="No features provided for prediction.")
+        raise HTTPException(status_code=422, detail="No features provided for prediction.")
     if not model_initialized:
         logger.warning("Model not initialized. Attempting to initialize.")
         try:

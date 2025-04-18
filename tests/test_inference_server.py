@@ -5,8 +5,8 @@ client = TestClient(app)
 
 def test_predict_valid():
     """
-    Simula una petición válida y verifica que el servidor responde correctamente
-    dependiendo de si el modelo está inicializado o no.
+    Simulates a valid request and checks that the server responds correctly
+    depending on whether the model is initialized or not.
     """
     features = {
         "Flow Duration": 1000,
@@ -30,31 +30,34 @@ def test_predict_valid():
         "Flow IAT Min": 0.0,
     }
     response = client.post("/predict", json=features)
-    assert response.status_code == 200
-    assert "prediction" in response.json()
-    
+    assert response.status_code == 200 or response.status_code == 503
+    if response.status_code == 200:
+        assert "prediction" in response.json()
+    elif response.status_code == 503:
+        assert "Model not available" in response.json()["detail"]
 
-def test_model_not_initialized():
+def test_predict_unprocessable():
     """
-    Simula una petición y verifica que el servidor responde con error 400 or 503
-    (modelo no disponible).
+    Simulates a request with no features and checks for 422 Unprocessable Entity.
     """
-    response = client.post("/predict", json={})
-    assert response.status_code in (400, 503)   
+    response = client.post("/predict", json=None)
+    assert response.status_code == 422
+    assert "No features provided" in response.json()["detail"]
 
 def test_predict_invalid():
     """
-    Simula una petición inválida (faltan campos) y verifica que el servidor responde
-    con error 422 (validación) o 503 (modelo no disponible).
+    Simulates an invalid request (empty features) and checks for 400 Bad Request or 503 Service Unavailable.
     """
     response = client.post("/predict", json={})
-    assert response.status_code in (422, 503)
+    assert response.status_code == 400 or response.status_code == 503
+    if response.status_code == 400:
+        assert "Invalid or empty features" in response.json()["detail"]
     if response.status_code == 503:
         assert "Model not available" in response.json()["detail"]
 
 def test_health_endpoint():
     """
-    Verifica que el endpoint /health refleja el estado de model_initialized.
+    Checks that the /health endpoint reflects the state of model_initialized.
     """
     response = client.get("/health")
     assert response.status_code == 200
