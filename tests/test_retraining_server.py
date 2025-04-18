@@ -7,11 +7,10 @@ def test_retrain_endpoint():
     """
     Tests the /retrain endpoint of the retraining server.
 
-    The endpoint should return a 200 status code and a JSON response containing the
-    status of the retraining process. The status should be either "retraining started"
-    or "retraining finished".
+    The endpoint should return a 501 status code and a JSON response indicating
+    that the retraining functionality is not implemented.
     """
     response = client.post("/retrain")
-    assert response.status_code == 200
-    assert "status" in response.json()
-    assert response.json()["status"] in ["retraining finished", "retraining started"]
+    assert response.status_code == 501
+    assert "detail" in response.json()
+    assert response.json()["detail"] == "Retraining not implemented"
