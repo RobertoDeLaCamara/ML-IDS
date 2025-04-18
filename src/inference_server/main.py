@@ -1,8 +1,12 @@
 from fastapi import FastAPI, HTTPException
 import pandas as pd
 import os
+import logging
 
 app = FastAPI()
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root():
@@ -11,7 +15,7 @@ async def root():
 
     :return: A JSON response with a message indicating that the inference server is running.
     """
-
+    logger.info("Root endpoint called.")
     return {"message": "Inference server is running."}
 
 @app.get("/health")
@@ -21,6 +25,7 @@ async def health():
 
     :return: A JSON response indicating the server is healthy and the model initialization status.
     """
+    logger.info("Health endpoint called. model_initialized=%s", model_initialized)
     global model_initialized
     return {"status": "healthy", "model_initialized": model_initialized}
 
@@ -42,12 +47,15 @@ def init_model():
     os.environ["MLFLOW_S3_ENDPOINT_URL"] = "http://192.168.1.189:9000"
     os.environ["AWS_ACCESS_KEY_ID"] = "roberto"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "patilla1"
+    logger.info("Initializing model from MLflow registry...")
     try:
         model = mlflow.sklearn.load_model("models:/CICD_IDS_Model_v1/Production")
         model_initialized = True
+        logger.info("Model loaded successfully.")
     except MlflowException as e:
         model = None
         model_initialized = False
+        logger.error("Model not available: %s", str(e))
         raise HTTPException(status_code=503, detail=f"Model not available: {str(e)}")
 
 @app.post("/predict")
@@ -64,16 +72,21 @@ def predict(features: dict):
              "prediction" with a value of a list of predicted classes.
     :raises: HTTPException if the model is not available.
     """
+    logger.info("Predict endpoint called with features: %s", features)
     global model_initialized, model
     if not model_initialized:
+        logger.warning("Model not initialized. Attempting to initialize.")
         try:
             init_model()
         except HTTPException as e:
+            logger.error("Model initialization failed: %s", e.detail)
             raise e
     if model is None:
+        logger.error("Prediction failed: Model not available.")
         raise HTTPException(status_code=503, detail="Model not available.")
     df = pd.DataFrame([features])
     prediction = model.predict(df)
+    logger.info("Prediction result: %s", prediction.tolist())
     return {"prediction": prediction.tolist()}
 
 
@@ -82,5 +95,5 @@ model_initialized = False
 try:
     init_model()
 except Exception as e:
-    # The model is not available at startup, it will be retried on the first request
+    logger.warning("Model not available at startup: %s", str(e))
     pass
