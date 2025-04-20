@@ -48,20 +48,26 @@ def init_model():
     import mlflow
     from mlflow.exceptions import MlflowException
     import os
-    # Cargar configuración desde variables de entorno
-    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI"))
+    logger.info("[init_model] Starting model load from MLflow registry...")
+    # Load configuration from environment variables
+    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
+    logger.info(f"[init_model] MLFLOW_TRACKING_URI: {mlflow_tracking_uri}")
+    mlflow.set_tracking_uri(mlflow_tracking_uri)
     os.environ["MLFLOW_S3_ENDPOINT_URL"] = os.environ.get("MLFLOW_S3_ENDPOINT_URL", "")
     os.environ["AWS_ACCESS_KEY_ID"] = os.environ.get("AWS_ACCESS_KEY_ID", "")
     os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
-    logger.info("Initializing model from MLflow registry...")
+    logger.info(f"[init_model] MLFLOW_S3_ENDPOINT_URL: {os.environ.get('MLFLOW_S3_ENDPOINT_URL')}")
+    logger.info(f"[init_model] AWS_ACCESS_KEY_ID: {os.environ.get('AWS_ACCESS_KEY_ID')}")
+    logger.info(f"[init_model] AWS_SECRET_ACCESS_KEY: {'***' if os.environ.get('AWS_SECRET_ACCESS_KEY') else ''}")
     try:
+        logger.info("[init_model] Loading model 'models:/CICD_IDS_Model_v1/Production' from MLflow...")
         model = mlflow.sklearn.load_model("models:/CICD_IDS_Model_v1/Production")
         model_initialized = True
-        logger.info("Model loaded successfully.")
+        logger.info("[init_model] Model loaded successfully.")
     except MlflowException as e:
         model = None
         model_initialized = False
-        logger.error("Model not available: %s", str(e))
+        logger.error(f"[init_model] Model not available: {str(e)}")
         raise HTTPException(status_code=503, detail=f"Model not available: {str(e)}")
 
 @app.post("/predict")
