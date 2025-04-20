@@ -2,11 +2,14 @@ from fastapi import FastAPI, HTTPException
 import pandas as pd
 import os
 import logging
+from dotenv import load_dotenv
 
 app = FastAPI()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 @app.get("/")
 async def root():
@@ -44,11 +47,12 @@ def init_model():
     global model, model_initialized
     import mlflow
     from mlflow.exceptions import MlflowException
-    # Set remote MLflow tracking URI
-    mlflow.set_tracking_uri("http://192.168.1.86:5050")
-    os.environ["MLFLOW_S3_ENDPOINT_URL"] = "http://192.168.1.189:9000"
-    os.environ["AWS_ACCESS_KEY_ID"] = "roberto"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "patilla1"
+    import os
+    # Cargar configuración desde variables de entorno
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI"))
+    os.environ["MLFLOW_S3_ENDPOINT_URL"] = os.environ.get("MLFLOW_S3_ENDPOINT_URL", "")
+    os.environ["AWS_ACCESS_KEY_ID"] = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
     logger.info("Initializing model from MLflow registry...")
     try:
         model = mlflow.sklearn.load_model("models:/CICD_IDS_Model_v1/Production")
