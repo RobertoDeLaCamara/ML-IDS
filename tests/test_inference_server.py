@@ -140,7 +140,7 @@ def is_docker_available():
 @pytest.mark.skipif(not is_docker_available(), reason="Docker is not available on this system.")
 def test_inference_server_docker():
     """
-    Arranca el contenedor de inference_server, espera a que esté listo y envía requests de prueba.
+    Starts a Docker container with the inference server and makes a prediction.
     """
     client = docker.from_env()
     image_tag = "inference_server:test"
@@ -157,7 +157,7 @@ def test_inference_server_docker():
         working_dir="/app"
     )
     try:
-        # Esperar a que el endpoint /health esté disponible
+        # Wait for the container to be ready
         url = "http://localhost:8000/health"
         for _ in range(30):
             try:
@@ -169,7 +169,7 @@ def test_inference_server_docker():
             time.sleep(1)
         else:
             pytest.fail("El contenedor no respondió en /health tras 30 segundos")
-        # Enviar request de prueba a /predict
+        # Send a prediction request
         features = {
             'Flow Duration': 1000,
             'Total Fwd Packet': 2,
