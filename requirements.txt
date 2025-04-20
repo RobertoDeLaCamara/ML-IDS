@@ -20,7 +20,6 @@ databricks-sdk==0.47.0
 debugpy==1.8.13
 decorator==5.2.1
 Deprecated==1.2.18
-docker==7.1.0
 executing==2.2.0
 fastapi==0.115.11
 Flask==3.1.0
@@ -104,7 +103,6 @@ python-multipart==0.0.20
 pytz==2025.1
 PyYAML==6.0.2
 pyzmq==26.3.0
-requests==2.32.3
 rich==13.9.4
 rsa==4.9
 s3transfer==0.11.4
@@ -150,3 +148,6 @@ mlflow
 plotly
 ipykernel
 python-multipart
+
+# Eliminadas dependencias innecesarias para tests y ejecución local
+# Solo dependencias globales del proyecto
