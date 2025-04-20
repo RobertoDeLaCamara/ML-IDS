@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label 'pytest','docker' // Agent labels
+        label 'pytest'// Agent labels
     }
      environment {
         VENV_DIR = 'venv'  // Virtual environment name
