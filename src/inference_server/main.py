@@ -60,8 +60,8 @@ def init_model():
     logger.info(f"[init_model] AWS_ACCESS_KEY_ID: {os.environ.get('AWS_ACCESS_KEY_ID')}")
     logger.info(f"[init_model] AWS_SECRET_ACCESS_KEY: {'***' if os.environ.get('AWS_SECRET_ACCESS_KEY') else ''}")
     try:
-        logger.info("[init_model] Loading model 'models:/CICD_IDS_Model_v1/Production' from MLflow...")
-        model = mlflow.sklearn.load_model("models:/CICD_IDS_Model_v1/Production")
+        logger.info("[init_model] Loading model 'models:/ML_IDS_Model_v1/Production' from MLflow...")
+        model = mlflow.sklearn.load_model("models:/ML_IDS_Model_v1/Production")
         model_initialized = True
         logger.info("[init_model] Model loaded successfully.")
     except MlflowException as e:
