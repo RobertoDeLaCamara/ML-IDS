@@ -1,4 +1,6 @@
-# ML-IDS Repository Documentation
+# ML-IDS
+
+ML-based Intrusion Detection System
 
 ## Purpose
 
@@ -117,6 +119,3 @@ ML-IDS/
 This repository provides a full pipeline for developing, evaluating, and deploying machine learning models for network intrusion detection, using real-world datasets and modern ML engineering practices. It is structured for reproducibility, extensibility, and ease of deployment in production environments.
 
 ---
-# ML-IDS
-
-ML-based Intrusion Detection System
