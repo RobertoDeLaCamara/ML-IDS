@@ -1,0 +1,55 @@
+openapi: 3.0.1
+info:
+  title: ML-IDS Inference Server API
+  version: 1.0.0
+  description: API for making predictions with the ML-IDS trained model.
+servers:
+  - url: http://localhost:8000
+paths:
+  /predict:
+    post:
+      summary: Predict class labels for input features
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                features:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: number
+              example:
+                features: [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+      responses:
+        '200':
+          description: Prediction results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  predictions:
+                    type: array
+                    items:
+                      type: string
+              example:
+                predictions: ["BENIGN", "DoS"]
+  /health:
+    get:
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+              example:
+                status: ok
