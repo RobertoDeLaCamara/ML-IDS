@@ -135,19 +135,19 @@ Werkzeug==3.1.3
 wheel==0.45.1
 wrapt==1.17.2
 zipp==3.21.0
-python-dotenv
+python-dotenv==1.0.1
+scapy==2.5.0
 
 # General requirements for development and notebooks
-jupyter
-notebook
-pandas
-matplotlib
-seaborn
-scikit-learn
-mlflow
-plotly
-ipykernel
-python-multipart
+jupyter==1.0.0
+notebook==7.3.1
+pandas==2.2.2
+matplotlib==3.8.4
+seaborn==0.13.2
+scikit-learn==1.5.0
+mlflow==2.13.1
+plotly==5.22.0
+ipykernel==6.29.4
+python-multipart==0.0.9
 
-# Eliminadas dependencias innecesarias para tests y ejecución local
-# Solo dependencias globales del proyecto
+
