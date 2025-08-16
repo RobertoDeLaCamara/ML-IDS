@@ -33,6 +33,15 @@ struct AppConfig {
 }
 
 impl AppConfig {
+    /// Load the application configuration.
+    ///
+    /// The configuration is loaded from several sources in the following order of precedence:
+    ///
+    /// 1. A file named `config`.
+    /// 2. A file named `config.toml` in the current directory.
+    /// 3. Environment variables prefixed with `TRAFFIC_CAPTURE__`.
+    ///
+    /// The configuration is deserialized into an instance of `AppConfig`.
     fn load() -> Result<Self, config::ConfigError> {
         let config_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
         let config = Config::builder()
@@ -47,6 +56,10 @@ impl AppConfig {
     }
 }
 
+/// Create a directory at the given path if it does not already exist.
+///
+/// This function is a wrapper around `std::fs::create_dir_all` that creates all
+/// necessary parent directories as well.
 fn ensure_pcap_dir(path: &str) -> Result<(), std::io::Error> {
     std::fs::create_dir_all(path)
 }
@@ -59,6 +72,17 @@ struct Args {
     config_file: Option<PathBuf>,
 }
 
+
+/// Set up logging for the application.
+///
+/// This function checks if the `RUST_LOG` environment variable is set, and if not,
+/// sets it to "info". It then initializes the `pretty_env_logger` to use the
+/// configured log level.
+///
+/// # Returns
+///
+/// This function returns `Result<(), Box<dyn Error>>`, indicating whether the
+/// logging setup was successful.
 fn setup_logging() -> Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
@@ -67,6 +91,25 @@ fn setup_logging() -> Result<()> {
     Ok(())
 }
 
+
+/// Load the application configuration from the given file path.
+///
+/// This function loads the application configuration from the specified file path.
+/// The configuration is loaded from several sources in the following order of precedence:
+///
+/// 1. The specified file path.
+/// 2. Environment variables prefixed with `TRAFFIC_CAPTURE__`.
+///
+/// The configuration is deserialized into an instance of `AppConfig`.
+///
+/// # Arguments
+///
+/// * `config_path` - The path to the configuration file.
+///
+/// # Returns
+///
+/// This function returns `Result<AppConfig, ConfigError>`, indicating whether the
+/// configuration was successfully loaded.
 fn load_config(config_path: &str) -> Result<AppConfig> {
     let settings = Config::builder()
         .add_source(File::with_name(config_path).required(false))
@@ -76,6 +119,19 @@ fn load_config(config_path: &str) -> Result<AppConfig> {
     settings.try_deserialize().map_err(Into::into)
 }
 
+/// Ensure that the given directory exists.
+///
+/// This function checks if the directory at the given path exists. If it does not exist,
+/// it creates the directory and all necessary parent directories.
+///
+/// # Arguments
+///
+/// * `dir` - The path to the directory to ensure exists.
+///
+/// # Returns
+///
+/// This function returns `Result<(), std::io::Error>`, indicating whether the directory
+/// was successfully created.
 fn ensure_pcap_dir_exists(dir: &str) -> Result<()> {
     if !std::path::Path::new(dir).exists() {
         fs::create_dir_all(dir)?;
@@ -84,6 +140,20 @@ fn ensure_pcap_dir_exists(dir: &str) -> Result<()> {
     Ok(())
 }
 
+/// Create a new pcap file in the given directory with a timestamped name.
+///
+/// This function creates a new pcap file in the specified directory with a timestamped name.
+/// The file name is of the format "capture_{YYYYMMDD_HHMMSS}.pcap".
+/// The file is created in a directory with the same name as the timestamp.
+///
+/// # Arguments
+///
+/// * `dir` - The directory in which to create the new pcap file.
+///
+/// # Returns
+///
+/// This function returns `Result<(PathBuf, pcap::Savefile), std::io::Error>`, indicating whether the pcap file was successfully created.
+/// The tuple returned contains the path of the created file and a `pcap::Savefile` instance for writing packets to the file.
 fn create_pcap_file(dir: &str) -> Result<(PathBuf, pcap::Savefile)> {
     use std::fs::File;
     use std::path::Path;
@@ -105,6 +175,21 @@ fn create_pcap_file(dir: &str) -> Result<(PathBuf, pcap::Savefile)> {
     Ok((path, savefile))
 }
 
+/// Upload a file to MinIO.
+///
+/// This function uploads a file to the specified MinIO bucket using the given
+/// configuration. The file is uploaded with the same name it has on the local
+/// file system.
+///
+/// # Arguments
+///
+/// * `file_path` - The path to the file to upload.
+/// * `config` - The configuration for the MinIO bucket.
+///
+/// # Returns
+///
+/// This function returns `Result<(), anyhow::Error>`, indicating whether the
+/// upload was successful.
 async fn upload_to_minio(file_path: &Path, config: &MinioConfig) -> Result<()> {
     use aws_sdk_s3::primitives::ByteStream;
     use http::Uri;
@@ -163,6 +248,24 @@ async fn upload_to_minio(file_path: &Path, config: &MinioConfig) -> Result<()> {
     Ok(())
 }
 
+/// Capture network traffic on the specified interface and upload files to MinIO.
+///
+/// This function captures network traffic on the specified interface and uploads
+/// files to MinIO. It uses the default interface if none is specified. 
+///
+/// The function continuously captures packets and writes them to a pcap file.
+/// When the file reaches the specified size or duration, it is uploaded to MinIO
+/// and a new file is created.
+///
+/// # Arguments
+///
+/// * `config` - The application configuration containing the interface and
+///   MinIO configuration.
+///
+/// # Returns
+///
+/// This function returns `Result<(), anyhow::Error>`, indicating whether the
+/// capture and upload process was successful.
 async fn capture_traffic(config: &AppConfig) -> Result<()> {
     use std::time::SystemTime;
     
@@ -237,6 +340,16 @@ async fn capture_traffic(config: &AppConfig) -> Result<()> {
     }
 }
 
+/// The main function of the application.
+///
+/// This function sets up logging, loads the application configuration, creates the
+/// pcap directory if it doesn't exist, and starts capturing traffic using the
+/// `capture_traffic` function.
+///
+/// # Returns
+///
+/// This function returns `Result<(), Box<dyn Error>>`, indicating whether the
+/// application exited successfully.
 #[tokio::main]
 async fn main() -> Result<()> {
     // Setup logging
