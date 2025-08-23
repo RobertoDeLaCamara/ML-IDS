@@ -110,7 +110,7 @@ ML-IDS/
 
 ## Experiment Tracking
 
-- **MLflow:** All experiments, metrics, and models are tracked and versioned using MLflow, with artifacts stored in the `notebooks/mlruns/` directory and/or a remote MLflow server.
+- **MLflow:** All experiments, metrics, and models are tracked and versioned using MLflow.
 
 ---
 
