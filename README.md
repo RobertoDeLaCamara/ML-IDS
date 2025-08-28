@@ -74,6 +74,12 @@ ML-IDS/
   - `readme.txt` and `source.txt`: Provide additional context and source information about the dataset.
 - **Description:** The CIC-IDS2017 dataset is a widely used benchmark for intrusion detection research, containing realistic network traffic with labeled attack and benign samples.
 
+#### Dataset Usage Conditions
+This repository includes the CICIDS2017 dataset provided by the Canadian Institute for Cybersecurity (CIC) of the University of New Brunswick.
+The dataset is intended for academic and research purposes only.
+Use of the dataset is subject to the terms and conditions of the CIC. Citation of the original source is required when using this data.
+Permission for public or commercial redistribution is not guaranteed. It is recommended to review the official conditions at:
+https://www.unb.ca/cic/datasets/ids-2017.html
 ---
 
 ## Machine Learning Models
