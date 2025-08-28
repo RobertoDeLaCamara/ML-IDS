@@ -6,9 +6,6 @@ ML-based Intrusion Detection System
 
 The ML-IDS (Mac- **Description:** The CIC-IDS2017 dataset is a widely used benchmark for intrusion detection research, containing realistic network traffic with labeled attack and benign samples.
 
-#### Dataset Usage Conditions
-The CICIDS2017 dataset is included for academic and research purposes and is subject to the CIC's terms. Please cite the original source and review the official conditions at https://www.unb.ca/cic/datasets/ids-2017.html before using the data.
----ning Intrusion Detection System) repository is designed to develop, train, evaluate, and deploy machine learning models for network intrusion detection. The goal is to identify malicious network activity using advanced ML techniques, leveraging real-world datasets and providing tools for model retraining, inference, and experiment tracking.
 
 ---
 
