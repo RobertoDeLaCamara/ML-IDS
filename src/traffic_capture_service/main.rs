@@ -6,13 +6,8 @@ use config::{Config, Environment, File};
 use log::{error, info};
 use pcap::{Capture, Device, Linktype, Packet};
 use serde::Deserialize;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-
-// Re-export for easier access
-use pcap::Savefile as PcapSavefile;
-use std::fs::File as StdFile;
 
 #[derive(Debug, Deserialize, Clone)]
 struct MinioConfig {
@@ -91,34 +86,6 @@ fn setup_logging() -> Result<()> {
     Ok(())
 }
 
-
-/// Load the application configuration from the given file path.
-///
-/// This function loads the application configuration from the specified file path.
-/// The configuration is loaded from several sources in the following order of precedence:
-///
-/// 1. The specified file path.
-/// 2. Environment variables prefixed with `TRAFFIC_CAPTURE__`.
-///
-/// The configuration is deserialized into an instance of `AppConfig`.
-///
-/// # Arguments
-///
-/// * `config_path` - The path to the configuration file.
-///
-/// # Returns
-///
-/// This function returns `Result<AppConfig, ConfigError>`, indicating whether the
-/// configuration was successfully loaded.
-fn load_config(config_path: &str) -> Result<AppConfig> {
-    let settings = Config::builder()
-        .add_source(File::with_name(config_path).required(false))
-        .add_source(Environment::with_prefix("TRAFFIC_CAPTURE"))
-        .build()?;
-
-    settings.try_deserialize().map_err(Into::into)
-}
-
 /// Ensure that the given directory exists.
 ///
 /// This function checks if the directory at the given path exists. If it does not exist,
@@ -132,13 +99,6 @@ fn load_config(config_path: &str) -> Result<AppConfig> {
 ///
 /// This function returns `Result<(), std::io::Error>`, indicating whether the directory
 /// was successfully created.
-fn ensure_pcap_dir_exists(dir: &str) -> Result<()> {
-    if !std::path::Path::new(dir).exists() {
-        fs::create_dir_all(dir)?;
-        info!("Created directory: {}", dir);
-    }
-    Ok(())
-}
 
 /// Create a new pcap file in the given directory with a timestamped name.
 ///
@@ -167,7 +127,7 @@ fn create_pcap_file(dir: &str) -> Result<(PathBuf, pcap::Savefile)> {
         std::fs::create_dir_all(parent)?;
     }
     
-    let file = File::create(&path)?;
+    let _file = File::create(&path)?;
     let cap = Capture::dead(Linktype::ETHERNET)?;
     let savefile = cap.savefile(&path)?;
     
@@ -192,7 +152,6 @@ fn create_pcap_file(dir: &str) -> Result<(PathBuf, pcap::Savefile)> {
 /// upload was successful.
 async fn upload_to_minio(file_path: &Path, config: &MinioConfig) -> Result<()> {
     use aws_sdk_s3::primitives::ByteStream;
-    use http::Uri;
     
     let file_name = file_path
         .file_name()
@@ -267,8 +226,6 @@ async fn upload_to_minio(file_path: &Path, config: &MinioConfig) -> Result<()> {
 /// This function returns `Result<(), anyhow::Error>`, indicating whether the
 /// capture and upload process was successful.
 async fn capture_traffic(config: &AppConfig) -> Result<()> {
-    use std::time::SystemTime;
-    
     // Get the default device if no interface is specified
     let device = if config.interface.is_empty() {
         // Get all devices and find the first non-loopback one
