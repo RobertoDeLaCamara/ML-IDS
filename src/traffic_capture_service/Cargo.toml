@@ -5,7 +5,7 @@ edition = "2021"
 
 [[bin]]
 name = "traffic_capture_service"
-path = "src/main.rs"
+path = "main.rs"
 
 [dependencies]
 pcap = "0.8"
