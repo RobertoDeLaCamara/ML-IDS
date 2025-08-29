@@ -5,31 +5,15 @@ services:
     build: .
     container_name: traffic-capture
     restart: unless-stopped
-    network_mode: host  # Required for packet capture
+    network_mode: "host"
     cap_add:
-      - NET_ADMIN  # Required for packet capture
+      - NET_ADMIN
     volumes:
-      - ./config.toml:/etc/traffic-capture/config.toml:ro
+      - ./config.toml:/app/config.toml:ro
       - pcap_data:/data/pcaps
-    environment:
-      - RUST_LOG=info
-    depends_on:
-      - minio
-
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    restart: unless-stopped
-    ports:
-      - "9000:9000"  # API port
-      - "9001:9001"  # Console port
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+    env_file:
+      - .env
 
 volumes:
   pcap_data:
-  minio_data:
+
