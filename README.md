@@ -30,8 +30,8 @@ ML-IDS/
 │   ├── cic-unsw-nb15_exploratory_analysis.ipynb  # Exploratory analysis notebook
 │   ├── feature_engineering.ipynb                 # Feature engineering steps
 │   ├── model_selection.ipynb                     # Model selection and comparison
-│   ├── model_training.ipynb                      # Main model training and evaluation
-│   └── mlruns/                                  # MLflow experiment tracking artifacts
+│   └── model_training.ipynb                      # Main model training and evaluation
+│   
 │
 ├── src/
 │   ├── inference_server/
