@@ -34,20 +34,15 @@ ML-IDS/
 │   
 │
 ├── src/
-│   ├── inference_server/
+│   └── inference_server/
 │   │   ├── Dockerfile
 │   │   ├── main.py
 │   │   └── requirements.txt
-│   └── retraining_server/
-│       ├── Dockerfile
-│       ├── main.py
-│       └── requirements.txt
 │
 └── tests/
     ├── __init__.py
     ├── curl_predict_full.sh
     ├── test_inference_server.py
-    ├── test_retraining_server.py
     └── __pycache__/
 ```
 
@@ -58,7 +53,6 @@ ML-IDS/
 
 - [Inference Server API](src/inference_server/API.md)
 - [Inference Server OpenAPI Spec](src/inference_server/openapi.yaml)
-- [Retraining Server API](src/retraining_server/API.md)
 - [Model Details](notebooks/MODEL_DETAILS.md)
 - [CIC-IDS2017 Dataset Details](data/CIC-IDS2017/DATASET_DETAILS.md)
 
@@ -105,14 +99,13 @@ https://www.unb.ca/cic/datasets/ids-2017.html
 ### Model Deployment
 
 - **Inference Server:** Located in `src/inference_server/`, provides an API for model inference.
-- **Retraining Server:** Located in `src/retraining_server/`, supports model retraining and updating.
 
 ---
 
 ## Testing
 
 - **Location:** `tests/`
-- **Files:** Unit and integration tests for inference and retraining servers, as well as a shell script for testing prediction endpoints.
+- **Files:** Unit and integration tests for inference, as well as a shell script for testing prediction endpoints.
 
 ---
 
