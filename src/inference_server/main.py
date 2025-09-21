@@ -194,6 +194,15 @@ def predict(features: dict):
         raise HTTPException(status_code=400, detail="Invalid or empty features for prediction.")
     prediction = model.predict(df)
     logger.info("Prediction result: %s", prediction.tolist())
+
+    # Log positive predictions
+    if prediction[0] != 0:
+        log_dir = os.environ.get("LOG_DIR", "/app/logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "positive_predictions.log")
+        with open(log_file, "a") as f:
+            f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, Features: {features}\n")
+
     return {"prediction": prediction.tolist()}
 
 
