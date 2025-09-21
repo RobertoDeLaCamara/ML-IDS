@@ -35,9 +35,9 @@ ML-IDS/
 │
 ├── src/
 │   └── inference_server/
-│   │   ├── Dockerfile
-│   │   ├── main.py
-│   │   └── requirements.txt
+│       ├── Dockerfile
+│       ├── main.py
+│       └── requirements.txt
 │
 └── tests/
     ├── __init__.py
