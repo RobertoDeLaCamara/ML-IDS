@@ -42,8 +42,7 @@ ML-IDS/
 └── tests/
     ├── __init__.py
     ├── curl_predict_full.sh
-    ├── test_inference_server.py
-    └── __pycache__/
+    └── test_inference_server.py
 ```
 
 ---
