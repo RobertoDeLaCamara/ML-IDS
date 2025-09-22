@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ml-ids:
     build:
@@ -20,7 +18,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=your-secret-key
       
       # CICFlowMeter configuration
-      - CIC_INTERFACE=eth0
+      - CIC_INTERFACE=eth6
       
       # Optional configuration
       - LOG_DIR=/app/logs
@@ -28,12 +26,6 @@ services:
       # Mount logs directory for persistence
       - /var/log/ml-ids:/app/logs
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
 # To use this file:
 # 1. Update environment variables with your actual values
