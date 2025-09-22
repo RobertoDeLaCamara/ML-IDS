@@ -5,18 +5,17 @@ WORKDIR /app
 # Install cicflowmeter dependencies, jq, and curl
 RUN apt-get update && apt-get install -y tcpdump jq curl && rm -rf /var/lib/apt/lists/*
 
+# Copy the entire project
 COPY . .
 
-WORKDIR /app/src/inference_server
-
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r src/inference_server/requirements.txt
 RUN pip install --no-cache-dir cicflowmeter
 
 # Make start.sh executable
-RUN chmod +x start.sh
+RUN chmod +x src/inference_server/start.sh
 
 EXPOSE 8000
 
-CMD ["./start.sh"]
+CMD ["./src/inference_server/start.sh"]
 
