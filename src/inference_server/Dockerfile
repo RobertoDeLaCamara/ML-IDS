@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir cicflowmeter
 COPY . .
 
 # Make start.sh executable
-RUN chmod +x start.sh
+RUN chmod +x src/inference_server/start.sh
 
 EXPOSE 8000
 
-CMD ["./start.sh"]
+CMD ["./src/inference_server/start.sh"]
