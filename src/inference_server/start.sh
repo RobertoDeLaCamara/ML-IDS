@@ -5,10 +5,14 @@ cd /app/src/inference_server
 # Start the inference server in the background
 uvicorn main:app --host 0.0.0.0 --port 8000 &
 
+# Wait for the server to start
+echo "Waiting for server to start..."
+sleep 5
+
 # Wait for the model to be initialized
 echo "Waiting for model to be initialized..."
 while true; do
-    if curl -s http://localhost:8000/health | jq -e '.model_initialized == true' > /dev/null 2>&1; then
+    if python3 -c "import requests; r=requests.get('http://localhost:8000/health'); exit(0 if r.json().get('model_initialized') else 1)" 2>/dev/null; then
         echo "Model is initialized."
         break
     fi
