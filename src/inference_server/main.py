@@ -24,130 +24,85 @@ async def root():
 @app.get("/health")
 async def health():
     """
-    Health check endpoint to verify if the server is running and if the model is initialized.
+    Health check endpoint for the inference server.
 
-    :return: A JSON response indicating the server is healthy and the model initialization status.
+    :return: A JSON response with two keys: "status" with value "healthy", and "model_initialized" with a boolean value indicating whether the model has been initialized.
     """
-    global model_initialized
-    logger.info("Health endpoint called. model_initialized=%s", model_initialized)
-    return {"status": "healthy", "model_initialized": model_initialized}
+    return {"status": "healthy", "model_initialized": model_manager.initialized}
 
-def init_model():
-    """
-    Initialize the model by loading it from MLflow model registry.
+import mlflow
+from mlflow.exceptions import MlflowException
 
-    This function is global in scope and should only be called once, as it
-    sets the global variables `model` and `model_initialized`.
+class ModelManager:
+    def __init__(self):
+        """
+        Initializes the ModelManager.
 
-    If the model is not available, it raises an HTTPException with a 503
-    status code.
+        Sets the model, features, and initialized attributes to None or False, respectively.
+        """
+        self.model = None
+        self.features = None
+        self.initialized = False
+    
+    def load_model(self):
+        """
+        Loads the ML model from MLflow.
 
-    :raises: HTTPException
-    """
-    global model, model_initialized, MODEL_FEATURES
-    import mlflow
-    from mlflow.exceptions import MlflowException
-    import os
-    logger.info("[init_model] Starting model load from MLflow registry...")
-    # Load configuration from environment variables
-    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
-    logger.info(f"[init_model] MLFLOW_TRACKING_URI: {mlflow_tracking_uri}")
-    mlflow.set_tracking_uri(mlflow_tracking_uri)
-    os.environ["MLFLOW_S3_ENDPOINT_URL"] = os.environ.get("MLFLOW_S3_ENDPOINT_URL", "")
-    os.environ["AWS_ACCESS_KEY_ID"] = os.environ.get("AWS_ACCESS_KEY_ID", "")
-    os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
-    logger.info(f"[init_model] MLFLOW_S3_ENDPOINT_URL: {os.environ.get('MLFLOW_S3_ENDPOINT_URL')}")
-    logger.info(f"[init_model] AWS_ACCESS_KEY_ID: {os.environ.get('AWS_ACCESS_KEY_ID')}")
-    logger.info(f"[init_model] AWS_SECRET_ACCESS_KEY: {'***' if os.environ.get('AWS_SECRET_ACCESS_KEY') else ''}")
-    try:
-        logger.info("[init_model] Loading model 'models:/ML_IDS_Model_v1/Production' from MLflow...")
-        model = mlflow.sklearn.load_model("models:/ML_IDS_Model_v1/Production")
-        MODEL_FEATURES = model.feature_names_in_
-        model_initialized = True
-        logger.info("[init_model] Model loaded successfully.")
-    except MlflowException as e:
-        model = None
-        model_initialized = False
-        logger.error(f"[init_model] Model not available: {str(e)}")
-        raise HTTPException(status_code=503, detail=f"Model not available: {str(e)}")
+        If the model has already been loaded, this method does nothing.
+        Otherwise, it sets the MLflow tracking URI and model name from environment variables,
+        loads the model, and extracts the feature names from the model.
+
+        If the model cannot be loaded, this method logs an error and raises an HTTPException
+        with status code 503 and a detail message indicating that the model is not available.
+        """
+        if self.initialized:
+            return
+        
+        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI"))
+        model_name = os.environ.get("MLFLOW_MODEL_NAME", "models:/ML_IDS_Model_v1/Production")
+        
+        try:
+            self.model = mlflow.sklearn.load_model(model_name)
+            self.features = self.model.feature_names_in_
+            self.initialized = True
+            logger.info("Model loaded successfully.")
+        except (MlflowException, AttributeError) as e:
+            logger.error(f"Model not available: {e}")
+            raise HTTPException(status_code=503, detail=f"Model not available: {e}")
+
+model_manager = ModelManager()
 
 FEATURE_MAPPING = {
-    "flow_duration": "Flow Duration",
-    "tot_fwd_pkts": "Total Fwd Packet",
-    "tot_bwd_pkts": "Total Bwd packets",
-    "totlen_fwd_pkts": "Total Length of Fwd Packet",
-    "totlen_bwd_pkts": "Total Length of Bwd Packet",
-    "fwd_pkt_len_max": "Fwd Packet Length Max",
-    "fwd_pkt_len_min": "Fwd Packet Length Min",
-    "fwd_pkt_len_mean": "Fwd Packet Length Mean",
-    "fwd_pkt_len_std": "Fwd Packet Length Std",
-    "bwd_pkt_len_max": "Bwd Packet Length Max",
-    "bwd_pkt_len_min": "Bwd Packet Length Min",
-    "bwd_pkt_len_mean": "Bwd Packet Length Mean",
-    "bwd_pkt_len_std": "Bwd Packet Length Std",
-    "flow_byts_s": "Flow Bytes/s",
-    "flow_pkts_s": "Flow Packets/s",
-    "flow_iat_mean": "Flow IAT Mean",
-    "flow_iat_std": "Flow IAT Std",
-    "flow_iat_max": "Flow IAT Max",
-    "flow_iat_min": "Flow IAT Min",
-    "fwd_iat_tot": "Fwd IAT Total",
-    "fwd_iat_mean": "Fwd IAT Mean",
-    "fwd_iat_std": "Fwd IAT Std",
-    "fwd_iat_max": "Fwd IAT Max",
-    "fwd_iat_min": "Fwd IAT Min",
-    "bwd_iat_tot": "Bwd IAT Total",
-    "bwd_iat_mean": "Bwd IAT Mean",
-    "bwd_iat_std": "Bwd IAT Std",
-    "bwd_iat_max": "Bwd IAT Max",
-    "bwd_iat_min": "Bwd IAT Min",
-    "fwd_psh_flags": "Fwd PSH Flags",
-    "bwd_psh_flags": "Bwd PSH Flags",
-    "fwd_urg_flags": "Fwd URG Flags",
-    "bwd_urg_flags": "Bwd URG Flags",
-    "fwd_header_len": "Fwd Header Length",
-    "bwd_header_len": "Bwd Header Length",
-    "fwd_pkts_s": "Fwd Packets/s",
-    "bwd_pkts_s": "Bwd Packets/s",
-    "pkt_len_min": "Packet Length Min",
-    "pkt_len_max": "Packet Length Max",
-    "pkt_len_mean": "Packet Length Mean",
-    "pkt_len_std": "Packet Length Std",
-    "pkt_len_var": "Packet Length Variance",
-    "fin_flag_cnt": "FIN Flag Count",
-    "syn_flag_cnt": "SYN Flag Count",
-    "rst_flag_cnt": "RST Flag Count",
-    "psh_flag_cnt": "PSH Flag Count",
-    "ack_flag_cnt": "ACK Flag Count",
-    "urg_flag_cnt": "URG Flag Count",
-    "cwr_flag_count": "CWR Flag Count",
-    "ece_flag_cnt": "ECE Flag Count",
-    "down_up_ratio": "Down/Up Ratio",
-    "pkt_size_avg": "Average Packet Size",
-    "fwd_seg_size_avg": "Fwd Segment Size Avg",
-    "bwd_seg_size_avg": "Bwd Segment Size Avg",
-    "fwd_byts_b_avg": "Fwd Bytes/Bulk Avg",
-    "fwd_pkts_b_avg": "Fwd Packet/Bulk Avg",
-    "fwd_blk_rate_avg": "Fwd Bulk Rate Avg",
-    "bwd_byts_b_avg": "Bwd Bytes/Bulk Avg",
-    "bwd_pkts_b_avg": "Bwd Packet/Bulk Avg",
-    "bwd_blk_rate_avg": "Bwd Bulk Rate Avg",
-    "subflow_fwd_pkts": "Subflow Fwd Packets",
-    "subflow_fwd_byts": "Subflow Fwd Bytes",
-    "subflow_bwd_pkts": "Subflow Bwd Packets",
-    "subflow_bwd_byts": "Subflow Bwd Bytes",
-    "init_fwd_win_byts": "FWD Init Win Bytes",
-    "init_bwd_win_byts": "Bwd Init Win Bytes",
-    "fwd_act_data_pkts": "Fwd Act Data Pkts",
-    "fwd_seg_size_min": "Fwd Seg Size Min",
-    "active_mean": "Active Mean",
-    "active_std": "Active Std",
-    "active_max": "Active Max",
-    "active_min": "Active Min",
-    "idle_mean": "Idle Mean",
-    "idle_std": "Idle Std",
-    "idle_max": "Idle Max",
-    "idle_min": "Idle Min",
+    "flow_duration": "Flow Duration", "tot_fwd_pkts": "Total Fwd Packet", "tot_bwd_pkts": "Total Bwd packets",
+    "totlen_fwd_pkts": "Total Length of Fwd Packet", "totlen_bwd_pkts": "Total Length of Bwd Packet",
+    "fwd_pkt_len_max": "Fwd Packet Length Max", "fwd_pkt_len_min": "Fwd Packet Length Min",
+    "fwd_pkt_len_mean": "Fwd Packet Length Mean", "fwd_pkt_len_std": "Fwd Packet Length Std",
+    "bwd_pkt_len_max": "Bwd Packet Length Max", "bwd_pkt_len_min": "Bwd Packet Length Min",
+    "bwd_pkt_len_mean": "Bwd Packet Length Mean", "bwd_pkt_len_std": "Bwd Packet Length Std",
+    "flow_byts_s": "Flow Bytes/s", "flow_pkts_s": "Flow Packets/s", "flow_iat_mean": "Flow IAT Mean",
+    "flow_iat_std": "Flow IAT Std", "flow_iat_max": "Flow IAT Max", "flow_iat_min": "Flow IAT Min",
+    "fwd_iat_tot": "Fwd IAT Total", "fwd_iat_mean": "Fwd IAT Mean", "fwd_iat_std": "Fwd IAT Std",
+    "fwd_iat_max": "Fwd IAT Max", "fwd_iat_min": "Fwd IAT Min", "bwd_iat_tot": "Bwd IAT Total",
+    "bwd_iat_mean": "Bwd IAT Mean", "bwd_iat_std": "Bwd IAT Std", "bwd_iat_max": "Bwd IAT Max",
+    "bwd_iat_min": "Bwd IAT Min", "fwd_psh_flags": "Fwd PSH Flags", "bwd_psh_flags": "Bwd PSH Flags",
+    "fwd_urg_flags": "Fwd URG Flags", "bwd_urg_flags": "Bwd URG Flags", "fwd_header_len": "Fwd Header Length",
+    "bwd_header_len": "Bwd Header Length", "fwd_pkts_s": "Fwd Packets/s", "bwd_pkts_s": "Bwd Packets/s",
+    "pkt_len_min": "Packet Length Min", "pkt_len_max": "Packet Length Max", "pkt_len_mean": "Packet Length Mean",
+    "pkt_len_std": "Packet Length Std", "pkt_len_var": "Packet Length Variance", "fin_flag_cnt": "FIN Flag Count",
+    "syn_flag_cnt": "SYN Flag Count", "rst_flag_cnt": "RST Flag Count", "psh_flag_cnt": "PSH Flag Count",
+    "ack_flag_cnt": "ACK Flag Count", "urg_flag_cnt": "URG Flag Count", "cwr_flag_count": "CWR Flag Count",
+    "ece_flag_cnt": "ECE Flag Count", "down_up_ratio": "Down/Up Ratio", "pkt_size_avg": "Average Packet Size",
+    "fwd_seg_size_avg": "Fwd Segment Size Avg", "bwd_seg_size_avg": "Bwd Segment Size Avg",
+    "fwd_byts_b_avg": "Fwd Bytes/Bulk Avg", "fwd_pkts_b_avg": "Fwd Packet/Bulk Avg",
+    "fwd_blk_rate_avg": "Fwd Bulk Rate Avg", "bwd_byts_b_avg": "Bwd Bytes/Bulk Avg",
+    "bwd_pkts_b_avg": "Bwd Packet/Bulk Avg", "bwd_blk_rate_avg": "Bwd Bulk Rate Avg",
+    "subflow_fwd_pkts": "Subflow Fwd Packets", "subflow_fwd_byts": "Subflow Fwd Bytes",
+    "subflow_bwd_pkts": "Subflow Bwd Packets", "subflow_bwd_byts": "Subflow Bwd Bytes",
+    "init_fwd_win_byts": "FWD Init Win Bytes", "init_bwd_win_byts": "Bwd Init Win Bytes",
+    "fwd_act_data_pkts": "Fwd Act Data Pkts", "fwd_seg_size_min": "Fwd Seg Size Min",
+    "active_mean": "Active Mean", "active_std": "Active Std", "active_max": "Active Max",
+    "active_min": "Active Min", "idle_mean": "Idle Mean", "idle_std": "Idle Std",
+    "idle_max": "Idle Max", "idle_min": "Idle Min"
 }
 
 @app.post("/predict")
@@ -165,35 +120,15 @@ def predict(features: dict):
     :raises: HTTPException if the model is not available.
     """
     logger.info("Predict endpoint called with features: %s", features)
-    global model_initialized, model
-    if not features or not isinstance(features, dict):
-        logger.error("Prediction failed: No features provided.")
-        raise HTTPException(status_code=422, detail="No features provided for prediction.")
-    if not model_initialized:
-        logger.warning("Model not initialized. Attempting to initialize.")
-        try:
-            init_model()
-        except HTTPException as e:
-            logger.error("Model initialization failed: %s", e.detail)
-            raise e
-    if model is None:
-        logger.error("Prediction failed: Model not available.")
-        raise HTTPException(status_code=503, detail="Model not available.")
+    if not features:
+        raise HTTPException(status_code=422, detail="No features provided")
     
-    # Map cicflowmeter features to model features
-    try:
-        mapped_features = {FEATURE_MAPPING[key]: value for key, value in features.items() if key in FEATURE_MAPPING}
-    except KeyError as e:
-        logger.error(f"Feature mapping failed: Missing feature {e}")
-        raise HTTPException(status_code=400, detail=f"Missing feature in input: {e}")
-
-    df = pd.DataFrame([mapped_features])
-    df = df.reindex(columns=MODEL_FEATURES)
-    if df.empty or df.shape[1] == 0:
-        logger.error("Prediction failed: Features DataFrame is empty or has no columns.")
-        raise HTTPException(status_code=400, detail="Invalid or empty features for prediction.")
-    prediction = model.predict(df)
-    logger.info("Prediction result: %s", prediction.tolist())
+    if not model_manager.initialized:
+        model_manager.load_model()
+    
+    mapped_features = {FEATURE_MAPPING[k]: v for k, v in features.items() if k in FEATURE_MAPPING}
+    df = pd.DataFrame([mapped_features]).reindex(columns=model_manager.features)
+    prediction = model_manager.model.predict(df)
 
     # Log positive predictions
     if prediction[0] != 0:
@@ -206,10 +141,7 @@ def predict(features: dict):
     return {"prediction": prediction.tolist()}
 
 
-model_initialized = False
-# Attempt to initialize the model when the server starts
 try:
-    init_model()
+    model_manager.load_model()
 except Exception as e:
-    logger.warning("Model not available at startup: %s", str(e))
-    pass
+    logger.warning(f"Model not available at startup: {e}")

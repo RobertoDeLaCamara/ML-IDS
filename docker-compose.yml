@@ -10,12 +10,18 @@ services:
       - NET_ADMIN
     environment:
       # MLflow configuration (required)
-      - MLFLOW_TRACKING_URI=http://your-mlflow-server:5000
-      - MLFLOW_S3_ENDPOINT_URL=http://your-s3-endpoint:9000
-      
+      - MLFLOW_TRACKING_URI=http://192.168.1.86:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://192.168.1.189:9000
+
       # AWS credentials for S3 (required)
-      - AWS_ACCESS_KEY_ID=your-access-key
-      - AWS_SECRET_ACCESS_KEY=your-secret-key
+      - AWS_ACCESS_KEY_ID=roberto
+      - AWS_SECRET_ACCESS_KEY=patilla1
+      
+      # Control whether CICFlowMeter is started
+      - START_CICFLOWMETER=false
+      
+      # Model configuration
+      - MLFLOW_MODEL_NAME=models:/ML_IDS_Model_v1/latest
       
       # CICFlowMeter configuration
       - CIC_INTERFACE=eth6
