@@ -21,6 +21,12 @@ while true; do
 done
 
 # Start cicflowmeter
-INTERFACE=${CIC_INTERFACE:-eth0}
-echo "Starting cicflowmeter on interface ${INTERFACE}..."
-/usr/local/bin/cicflowmeter -i ${INTERFACE} -u http://localhost:8000/predict
+if [ "${START_CICFLOWMETER}" != "false" ]; then
+    INTERFACE=${CIC_INTERFACE:-eth0}
+    echo "Starting cicflowmeter on interface ${INTERFACE}..."
+    /usr/local/bin/cicflowmeter -i ${INTERFACE} -u http://localhost:8000/predict
+else
+    echo "START_CICFLOWMETER is false, skipping cicflowmeter."
+    # Keep the container running
+    tail -f /dev/null
+fi
