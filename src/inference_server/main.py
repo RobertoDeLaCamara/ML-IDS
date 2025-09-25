@@ -130,11 +130,19 @@ def predict(features: dict):
     df = pd.DataFrame([mapped_features]).reindex(columns=model_manager.features)
     prediction = model_manager.model.predict(df)
 
-    # Log positive predictions
+    # Log predictions
+    log_dir = os.environ.get("LOG_DIR", "/app/logs")
+    os.makedirs(log_dir, exist_ok=True)
+    
     if prediction[0] != 0:
-        log_dir = os.environ.get("LOG_DIR", "/app/logs")
-        os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, "positive_predictions.log")
+        with open(log_file, "a") as f:
+            f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, Features: {features}\n")
+    
+    # Log negative predictions if enabled
+    log_negative = os.environ.get("LOG_NEGATIVE_PREDICTIONS", "false").lower() == "true"
+    if prediction[0] == 0 and log_negative:
+        log_file = os.path.join(log_dir, "negative_predictions.log")
         with open(log_file, "a") as f:
             f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, Features: {features}\n")
 

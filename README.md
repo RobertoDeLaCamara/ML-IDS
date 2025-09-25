@@ -229,6 +229,7 @@ services:
       - AWS_ACCESS_KEY_ID=your-access-key
       - AWS_SECRET_ACCESS_KEY=your-secret-key
       - CIC_INTERFACE=eth0
+      - LOG_NEGATIVE_PREDICTIONS=true
     volumes:
       - /var/log/ml-ids:/app/logs
     restart: unless-stopped
@@ -275,11 +276,13 @@ docker-compose up -d
 | `AWS_ACCESS_KEY_ID` | AWS access key | Required |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key | Required |
 | `LOG_DIR` | Directory for logs | `/app/logs` |
+| `LOG_NEGATIVE_PREDICTIONS` | Enable logging of negative predictions | `false` |
 
 #### Monitoring and Logs
 
 - **Application logs**: Available in `/app/logs/` inside the container
 - **Positive prediction logs**: Saved in `positive_predictions.log`
+- **Negative prediction logs**: Saved in `negative_predictions.log` (when enabled)
 - **Container logs**: `docker logs ml-ids`
 
 #### Troubleshooting
