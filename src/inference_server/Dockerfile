@@ -9,13 +9,13 @@ RUN apt-get update && apt-get install -y tcpdump jq curl && rm -rf /var/lib/apt/
 COPY . .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r src/inference_server/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir cicflowmeter
 
 # Make start.sh executable
-RUN chmod +x src/inference_server/start.sh
+RUN chmod +x start.sh
 
 EXPOSE 8000
 
-CMD ["./src/inference_server/start.sh"]
+CMD ["./start.sh"]
 
