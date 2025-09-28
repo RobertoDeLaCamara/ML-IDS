@@ -1,4 +1,4 @@
-# ML-IDS
+# Cognitive Intrusion Detection System
 
 Machine Learning-based Intrusion Detection System
 
