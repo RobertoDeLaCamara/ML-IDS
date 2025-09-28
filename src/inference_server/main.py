@@ -109,44 +109,47 @@ FEATURE_MAPPING = {
 def predict(features: dict):
     """
     Make a prediction with the model.
-
-    This function will be called for every inference request. It is
-    responsible for loading the model (if it has not been loaded before)
-    and running the prediction.
-
-    :param features: The input features as a dictionary.
-    :return: The prediction as a dictionary containing a single key
-             "prediction" with a value of a list of predicted classes.
-    :raises: HTTPException if the model is not available.
     """
-    logger.info("Predict endpoint called with features: %s", features)
+    logger.info(f"Predict endpoint called with {len(features)} features")
     if not features:
         raise HTTPException(status_code=422, detail="No features provided")
     
     if not model_manager.initialized:
         model_manager.load_model()
     
-    mapped_features = {FEATURE_MAPPING[k]: v for k, v in features.items() if k in FEATURE_MAPPING}
-    df = pd.DataFrame([mapped_features]).reindex(columns=model_manager.features)
-    prediction = model_manager.model.predict(df)
-
-    # Log predictions
-    log_dir = os.environ.get("LOG_DIR", "/app/logs")
-    os.makedirs(log_dir, exist_ok=True)
-    
-    if prediction[0] != 0:
-        log_file = os.path.join(log_dir, "positive_predictions.log")
-        with open(log_file, "a") as f:
-            f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, Features: {features}\n")
-    
-    # Log negative predictions if enabled
-    log_negative = os.environ.get("LOG_NEGATIVE_PREDICTIONS", "false").lower() == "true"
-    if prediction[0] == 0 and log_negative:
-        log_file = os.path.join(log_dir, "negative_predictions.log")
-        with open(log_file, "a") as f:
-            f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, Features: {features}\n")
-
-    return {"prediction": prediction.tolist()}
+    try:
+        # Map features and fill missing ones with 0
+        mapped_features = {FEATURE_MAPPING.get(k, k): v for k, v in features.items()}
+        df = pd.DataFrame([mapped_features]).reindex(columns=model_manager.features, fill_value=0)
+        
+        # Check for NaN values
+        if df.isnull().any().any():
+            logger.warning("NaN values found, filling with 0")
+            df = df.fillna(0)
+        
+        prediction = model_manager.model.predict(df)
+        
+        # Log predictions
+        log_dir = os.environ.get("LOG_DIR", "/app/logs")
+        os.makedirs(log_dir, exist_ok=True)
+        
+        if prediction[0] != 0:
+            log_file = os.path.join(log_dir, "positive_predictions.log")
+            with open(log_file, "a") as f:
+                f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
+        
+        # Log negative predictions if enabled
+        log_negative = os.environ.get("LOG_NEGATIVE_PREDICTIONS", "false").lower() == "true"
+        if prediction[0] == 0 and log_negative:
+            log_file = os.path.join(log_dir, "negative_predictions.log")
+            with open(log_file, "a") as f:
+                f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
+        
+        return {"prediction": prediction.tolist()}
+        
+    except Exception as e:
+        logger.error(f"Prediction error: {e}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 
 try:
