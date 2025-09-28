@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Change to the inference server directory
+cd /app/src/inference_server
+
 # Start the inference server in the background
 uvicorn main:app --host 0.0.0.0 --port 8000 &
 
