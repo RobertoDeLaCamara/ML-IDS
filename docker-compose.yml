@@ -33,6 +33,7 @@ services:
       
       # Optional configuration
       - LOG_DIR=/app/logs
+      - LOG_NEGATIVE_PREDICTIONS=true
     volumes:
       # Mount logs directory for persistence
       - /var/log/ml-ids:/app/logs
