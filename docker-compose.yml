@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   ml-ids:
     build:
@@ -15,12 +16,12 @@ services:
       retries: 3
     environment:
       # MLflow configuration (required)
-      - MLFLOW_TRACKING_URI=http://xxx.xxx.xxx.xxx:5050
-      - MLFLOW_S3_ENDPOINT_URL=http://xxx.xxx.xxx.xxx:9000
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
 
       # AWS credentials for S3 (required)
-      - AWS_ACCESS_KEY_ID=xxxx
-      - AWS_SECRET_ACCESS_KEY=xxxx
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       
       # Control whether CICFlowMeter is started
       - START_CICFLOWMETER=true

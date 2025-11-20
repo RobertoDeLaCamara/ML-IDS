@@ -6,7 +6,7 @@ import os
 def check_interface_exists(interface_name):
     """Check if network interface exists"""
     try:
-        result = subprocess.run(['ip', 'link', 'show', interface_name], 
+        result = subprocess.run(['/sbin/ip', 'link', 'show', interface_name], 
                               capture_output=True, text=True, check=True)
         return True
     except subprocess.CalledProcessError:
@@ -18,7 +18,10 @@ def main():
     if not check_interface_exists(interface):
         print(f"ERROR: Network interface '{interface}' not found!")
         print("Available interfaces:")
-        subprocess.run(['ip', 'link', 'show'])
+        try:
+            subprocess.run(['/sbin/ip', 'link', 'show'])
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to list interfaces: {e}")
         sys.exit(1)
     
     print(f"✓ Interface '{interface}' exists and is available")

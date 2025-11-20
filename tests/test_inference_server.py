@@ -91,7 +91,8 @@ def test_predict_valid():
     if response.status_code == 200:
         assert "prediction" in response.json()
     elif response.status_code == 503:
-        assert "Model not available" in response.json()["detail"]
+        detail = response.json()["detail"]
+        assert "Model not available" in detail or "MLFLOW_TRACKING_URI" in detail
 
 def test_predict_unprocessable():
     """

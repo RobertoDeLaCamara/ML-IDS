@@ -4,7 +4,7 @@
 echo "🔍 Validating ML-IDS deployment prerequisites..."
 
 # Check if interface exists on host
-INTERFACE=${CIC_INTERFACE:-eth6}
+INTERFACE=${CIC_INTERFACE:-eth0}
 echo "Checking interface: $INTERFACE"
 
 if ip link show "$INTERFACE" >/dev/null 2>&1; then
@@ -27,6 +27,7 @@ fi
 # Check Docker permissions
 if ! docker ps >/dev/null 2>&1; then
     echo "❌ Docker not accessible - check permissions"
+    exit 1
     exit 1
 fi
 echo "✓ Docker is accessible"

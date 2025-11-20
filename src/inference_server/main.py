@@ -58,7 +58,10 @@ class ModelManager:
         if self.initialized:
             return
         
-        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI"))
+        tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
+        if not tracking_uri:
+            raise HTTPException(status_code=503, detail="MLFLOW_TRACKING_URI environment variable is required")
+        mlflow.set_tracking_uri(tracking_uri)
         model_name = os.environ.get("MLFLOW_MODEL_NAME", "models:/ML_IDS_Model_v1/Production")
         
         try:
@@ -129,21 +132,24 @@ def predict(features: dict):
         
         prediction = model_manager.model.predict(df)
         
-        # Log predictions
-        log_dir = os.environ.get("LOG_DIR", "/app/logs")
-        os.makedirs(log_dir, exist_ok=True)
-        
-        if prediction[0] != 0:
-            log_file = os.path.join(log_dir, "positive_predictions.log")
-            with open(log_file, "a") as f:
-                f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
-        
-        # Log negative predictions if enabled
-        log_negative = os.environ.get("LOG_NEGATIVE_PREDICTIONS", "false").lower() == "true"
-        if prediction[0] == 0 and log_negative:
-            log_file = os.path.join(log_dir, "negative_predictions.log")
-            with open(log_file, "a") as f:
-                f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
+        # Log predictions with error handling
+        try:
+            log_dir = os.environ.get("LOG_DIR", "/app/logs")
+            os.makedirs(log_dir, exist_ok=True)
+            
+            if prediction[0] != 0:
+                log_file = os.path.join(log_dir, "positive_predictions.log")
+                with open(log_file, "a") as f:
+                    f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
+            
+            # Log negative predictions if enabled
+            log_negative = os.environ.get("LOG_NEGATIVE_PREDICTIONS", "false").lower() == "true"
+            if prediction[0] == 0 and log_negative:
+                log_file = os.path.join(log_dir, "negative_predictions.log")
+                with open(log_file, "a") as f:
+                    f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
+        except IOError as e:
+            logger.warning(f"Failed to write prediction log: {e}")
         
         return {"prediction": prediction.tolist()}
         
