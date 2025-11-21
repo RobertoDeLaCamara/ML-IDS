@@ -97,7 +97,7 @@ pyzmq==26.3.0
 rich==13.9.4
 rsa==4.9
 s3transfer==0.11.4
-scapy==2.7.0
+scapy==2.4.5
 scikit-learn==1.6.1
 scipy==1.15.2
 seaborn==0.13.2
