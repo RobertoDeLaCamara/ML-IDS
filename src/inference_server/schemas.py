@@ -83,6 +83,9 @@ class PredictionRequest(BaseModel):
     idle_std: float = Field(0.0, alias="idle_std")
     idle_max: float = Field(0.0, alias="idle_max")
     idle_min: float = Field(0.0, alias="idle_min")
+    
+    # Optional metadata for observability
+    src_ip: Optional[str] = Field(None, alias="src_ip")
 
     class Config:
         populate_by_name = True

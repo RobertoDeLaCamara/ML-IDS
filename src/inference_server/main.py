@@ -6,12 +6,20 @@ import numpy as np
 import logging
 from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter
 from .schemas import PredictionRequest
 
 app = FastAPI()
 
 # Initialize Prometheus Instrumentator
 Instrumentator().instrument(app).expose(app)
+
+# Custom Metrics
+ATTACK_COUNTER = Counter(
+    "ml_ids_detected_attacks_total",
+    "Total number of detected attacks by type and source IP",
+    ["attack_type", "src_ip"]
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -121,9 +129,16 @@ def predict(features: PredictionRequest):
             os.makedirs(log_dir, exist_ok=True)
             
             if prediction[0] != 0:
+                # Log attack to Prometheus
+                # Note: prediction[0] is the attack type (or 0 for benign)
+                # We convert to string for the label
+                attack_type = str(prediction[0])
+                src_ip = features.src_ip or "unknown"
+                ATTACK_COUNTER.labels(attack_type=attack_type, src_ip=src_ip).inc()
+
                 log_file = os.path.join(log_dir, "positive_predictions.log")
                 with open(log_file, "a") as f:
-                    f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}\n")
+                    f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, SrcIP: {features.src_ip}\n")
             
             # Log negative predictions if enabled
             log_negative = os.environ.get("LOG_NEGATIVE_PREDICTIONS", "false").lower() == "true"
