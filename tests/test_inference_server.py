@@ -1,130 +1,116 @@
 from fastapi.testclient import TestClient
-from src.inference_server.main import app
+from unittest.mock import patch, MagicMock
+import pytest
+import sys
+import os
+
+# Add src to path so we can import app
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Mock MLflow before importing main
+with patch('mlflow.set_tracking_uri'), \
+     patch('mlflow.sklearn.load_model') as mock_load_model:
+    
+    # Setup mock model
+    mock_model = MagicMock()
+    mock_model.predict.return_value = [0]
+    mock_model.feature_names_in_ = ['Flow Duration', 'Total Fwd Packet'] # Minimal set for testing
+    mock_load_model.return_value = mock_model
+    
+    from src.inference_server.main import app, model_manager
 
 client = TestClient(app)
 
+import numpy as np
+
+@pytest.fixture(autouse=True)
+def mock_mlflow_setup(tmp_path):
+    """
+    Fixture to mock MLflow for all tests.
+    """
+    # Set environment variables required by ModelManager
+    os.environ["MLFLOW_TRACKING_URI"] = "http://mock-mlflow"
+    os.environ["LOG_DIR"] = str(tmp_path / "logs")
+    
+    with patch('mlflow.set_tracking_uri'), \
+         patch('mlflow.sklearn.load_model') as mock_load_model:
+        
+        mock_model = MagicMock()
+        mock_model.predict.return_value = np.array([0])
+        # Mock features to match what the ModelManager expects (usually all of them, but we can mock a subset for unit tests)
+        # In main.py, it iterates over model_manager.features. Let's give it a few known ones.
+        mock_model.feature_names_in_ = ['Flow Duration', 'Total Fwd Packet']
+        mock_load_model.return_value = mock_model
+        
+        # Reset model manager state
+        model_manager.initialized = False
+        model_manager.model = None
+        model_manager.features = None
+        
+        yield mock_load_model
+    
+    # Cleanup
+    if "MLFLOW_TRACKING_URI" in os.environ:
+        del os.environ["MLFLOW_TRACKING_URI"]
+    if "LOG_DIR" in os.environ:
+        del os.environ["LOG_DIR"]
+
 def test_predict_valid():
     """
-    Simulates a valid request and checks that the server responds correctly
-    depending on whether the model is initialized or not.
+    Simulates a valid request and checks that the server responds correctly.
     """
     features = {
-        'Flow Duration': 1000,
-        'Total Fwd Packet': 2,
-        'Total Bwd packets': 2,
-        'Total Length of Fwd Packet': 100.0,
-        'Total Length of Bwd Packet': 100.0,
-        'Fwd Packet Length Max': 50.0,
-        'Fwd Packet Length Min': 0.0,
-        'Fwd Packet Length Mean': 25.0,
-        'Fwd Packet Length Std': 10.0,
-        'Bwd Packet Length Max': 50.0,
-        'Bwd Packet Length Min': 0.0,
-        'Bwd Packet Length Mean': 25.0,
-        'Bwd Packet Length Std': 10.0,
-        'Flow Bytes/s': 1000.0,
-        'Flow Packets/s': 2.0,
-        'Flow IAT Mean': 500.0,
-        'Flow IAT Std': 100.0,
-        'Flow IAT Max': 1000.0,
-        'Flow IAT Min': 0.0,
-        'Fwd IAT Total': 1000.0,
-        'Fwd IAT Mean': 500.0,
-        'Fwd IAT Std': 100.0,
-        'Fwd IAT Max': 1000.0,
-        'Fwd IAT Min': 0.0,
-        'Bwd IAT Total': 1000.0,
-        'Bwd IAT Mean': 500.0,
-        'Bwd IAT Std': 100.0,
-        'Bwd IAT Max': 1000.0,
-        'Bwd IAT Min': 0.0,
-        'Fwd PSH Flags': 0,
-        'Bwd PSH Flags': 0,
-        'Fwd URG Flags': 0,
-        'Bwd URG Flags': 0,
-        'Fwd Header Length': 20,
-        'Bwd Header Length': 20,
-        'Fwd Packets/s': 2.0,
-        'Bwd Packets/s': 2.0,
-        'Packet Length Min': 0.0,
-        'Packet Length Max': 50.0,
-        'Packet Length Mean': 25.0,
-        'Packet Length Std': 10.0,
-        'Packet Length Variance': 5.0,
-        'FIN Flag Count': 0,
-        'SYN Flag Count': 0,
-        'RST Flag Count': 0,
-        'PSH Flag Count': 0,
-        'ACK Flag Count': 0,
-        'URG Flag Count': 0,
-        'CWR Flag Count': 0,
-        'ECE Flag Count': 0,
-        'Down/Up Ratio': 1.0,
-        'Average Packet Size': 25.0,
-        'Fwd Segment Size Avg': 20.0,
-        'Bwd Segment Size Avg': 20.0,
-        'Fwd Bytes/Bulk Avg': 0.0,
-        'Fwd Packet/Bulk Avg': 0.0,
-        'Fwd Bulk Rate Avg': 0.0,
-        'Bwd Bytes/Bulk Avg': 0.0,
-        'Bwd Packet/Bulk Avg': 0.0,
-        'Bwd Bulk Rate Avg': 0.0,
-        'Subflow Fwd Packets': 1,
-        'Subflow Fwd Bytes': 100,
-        'Subflow Bwd Packets': 1,
-        'Subflow Bwd Bytes': 100,
-        'FWD Init Win Bytes': 0,
-        'Bwd Init Win Bytes': 0,
-        'Fwd Act Data Pkts': 0,
-        'Fwd Seg Size Min': 0,
-        'Active Mean': 0.0,
-        'Active Std': 0.0,
-        'Active Max': 0.0,
-        'Active Min': 0.0,
-        'Idle Mean': 0.0,
-        'Idle Std': 0.0,
-        'Idle Max': 0.0,
-        'Idle Min': 0.0
+        'flow_duration': 1000.0,
+        'tot_fwd_pkts': 2.0,
+        # Add other fields as needed, Pydantic will fill defaults for missing ones
     }
-    response = client.post("/predict", json=features)
-    assert response.status_code == 200 or response.status_code == 503
-    if response.status_code == 200:
+    
+    # We need to mock the model loading inside the request if it's not initialized
+    with patch('mlflow.sklearn.load_model') as mock_load:
+        mock_model = MagicMock()
+        mock_model.predict.return_value = np.array([0])
+        mock_model.feature_names_in_ = ['Flow Duration', 'Total Fwd Packet']
+        mock_load.return_value = mock_model
+        
+        response = client.post("/predict", json=features)
+        
+        assert response.status_code == 200
         assert "prediction" in response.json()
-    elif response.status_code == 503:
-        detail = response.json()["detail"]
-        assert "Model not available" in detail or "MLFLOW_TRACKING_URI" in detail
+        assert response.json()["prediction"] == [0]
 
 def test_predict_unprocessable():
     """
-    Simulates a request with no features and checks for 422 Unprocessable Entity.
+    Simulates a request with invalid data types and checks for 422 Unprocessable Entity.
     """
-    response = client.post("/predict")  # No JSON body sent
+    # Sending string where float is expected
+    features = {
+        'flow_duration': "invalid_string"
+    }
+    response = client.post("/predict", json=features)
     assert response.status_code == 422
-    # FastAPI returns a validation error list if body is missing
-    if isinstance(response.json(), list) or isinstance(response.json(), dict) and 'detail' in response.json():
-        detail = response.json().get('detail', response.json())
-        assert any('Field required' in str(item) or 'No features provided' in str(item) for item in (detail if isinstance(detail, list) else [detail]))
 
-def test_predict_invalid():
+def test_predict_empty_body():
     """
-    Simulates an invalid request (empty features) and checks for 400 Bad Request, 422 Unprocessable Entity, or 503 Service Unavailable.
+    Simulates a request with no body.
     """
-    response = client.post("/predict", json={})
-    assert response.status_code in (400, 422, 503)
-    if response.status_code == 400:
-        assert "Invalid or empty features" in response.json()["detail"]
-    if response.status_code == 422:
-        # Accept both FastAPI validation and custom error
-        detail = response.json().get('detail', response.json())
-        assert any('Field required' in str(item) or 'No features provided' in str(item) or 'Invalid or empty features' in str(item) for item in (detail if isinstance(detail, list) else [detail]))
-    if response.status_code == 503:
-        assert "Model not available" in response.json()["detail"]
+    response = client.post("/predict")
+    assert response.status_code == 422
 
 def test_health_endpoint():
     """
     Checks that the /health endpoint reflects the state of model_initialized.
     """
+    # Force initialization state for test
+    model_manager.initialized = True
     response = client.get("/health")
     assert response.status_code == 200
-    assert "model_initialized" in response.json()
-    assert isinstance(response.json()["model_initialized"], bool)
+    assert response.json()["status"] == "healthy"
+    assert response.json()["model_initialized"] is True
+
+def test_metrics_endpoint():
+    """
+    Checks that the /metrics endpoint is available.
+    """
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "http_requests_total" in response.text

@@ -5,8 +5,13 @@ import json
 import numpy as np
 import logging
 from dotenv import load_dotenv
+from prometheus_fastapi_instrumentator import Instrumentator
+from .schemas import PredictionRequest
 
 app = FastAPI()
+
+# Initialize Prometheus Instrumentator
+Instrumentator().instrument(app).expose(app)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -87,20 +92,20 @@ except Exception as e:
     raise RuntimeError(f"Failed to load feature mapping: {e}")
 
 @app.post("/predict")
-def predict(features: dict):
+def predict(features: PredictionRequest):
     """
     Make a prediction with the model.
     """
-    logger.info(f"Predict endpoint called with {len(features)} features")
-    if not features:
-        raise HTTPException(status_code=422, detail="No features provided")
+    # Convert Pydantic model to dict, using aliases (snake_case)
+    features_dict = features.model_dump(by_alias=True)
+    logger.info(f"Predict endpoint called with {len(features_dict)} features")
     
     if not model_manager.initialized:
         model_manager.load_model()
     
     try:
         # Map features and fill missing ones with 0
-        mapped_features = {FEATURE_MAPPING.get(k, k): v for k, v in features.items()}
+        mapped_features = {FEATURE_MAPPING.get(k, k): v for k, v in features_dict.items()}
         
         # Create input vector based on model features, defaulting to 0 for missing or None values
         input_vector = [mapped_features.get(feat, 0) or 0 for feat in model_manager.features]
