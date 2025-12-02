@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.staticfiles import StaticFiles
 import pandas as pd
 import os
 import json
@@ -8,6 +9,10 @@ from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter
 from .schemas import PredictionRequest
+from .database import init_db, close_db, health_check as db_health_check, is_db_available, get_db
+from .alert_service import alert_service
+from .routers import alerts, incidents, dashboard
+from sqlalchemy.ext.asyncio import AsyncSession
 
 app = FastAPI()
 
@@ -26,6 +31,17 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Include routers
+app.include_router(alerts.router)
+app.include_router(incidents.router)
+app.include_router(dashboard.router)
+
+# Mount static files for dashboard
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/dashboard", StaticFiles(directory=static_dir, html=True), name="dashboard")
+    logger.info("Dashboard static files mounted at /dashboard")
+
 @app.get("/")
 async def root():
     """
@@ -41,9 +57,21 @@ async def health():
     """
     Health check endpoint for the inference server.
 
-    :return: A JSON response with two keys: "status" with value "healthy", and "model_initialized" with a boolean value indicating whether the model has been initialized.
+    :return: A JSON response with status, model availability, and database health.
     """
-    return {"status": "healthy", "model_initialized": model_manager.initialized}
+    db_status = await db_health_check()
+    
+    overall_status = "healthy"
+    if db_status.get("database") == "unavailable":
+        overall_status = "degraded"  # Service works without DB
+    elif db_status.get("database") == "unhealthy":
+        overall_status = "unhealthy"
+    
+    return {
+        "status": overall_status,
+        "model_initialized": model_manager.initialized,
+        "database": db_status
+    }
 
 import mlflow
 from mlflow.exceptions import MlflowException
@@ -100,7 +128,7 @@ except Exception as e:
     raise RuntimeError(f"Failed to load feature mapping: {e}")
 
 @app.post("/predict")
-def predict(features: PredictionRequest):
+async def predict(features: PredictionRequest, db: AsyncSession = Depends(get_db)):
     """
     Make a prediction with the model.
     """
@@ -130,12 +158,24 @@ def predict(features: PredictionRequest):
             
             if prediction[0] != 0:
                 # Log attack to Prometheus
-                # Note: prediction[0] is the attack type (or 0 for benign)
-                # We convert to string for the label
                 attack_type = str(prediction[0])
                 src_ip = features.src_ip or "unknown"
                 ATTACK_COUNTER.labels(attack_type=attack_type, src_ip=src_ip).inc()
 
+                # Create alert in database
+                if db is not None:
+                    try:
+                        await alert_service.create_alert(
+                            db=db,
+                            attack_type=attack_type,
+                            src_ip=src_ip,
+                            features=features_dict,
+                            prediction_score=None  # Can add confidence from model if available
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to create alert in database: {e}")
+
+                # Log to file
                 log_file = os.path.join(log_dir, "positive_predictions.log")
                 with open(log_file, "a") as f:
                     f.write(f"Timestamp: {pd.Timestamp.now()}, Prediction: {prediction[0]}, SrcIP: {features.src_ip}\n")
@@ -156,7 +196,27 @@ def predict(features: PredictionRequest):
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 
-try:
-    model_manager.load_model()
-except Exception as e:
-    logger.warning(f"Model not available at startup: {e}")
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    # Initialize database
+    logger.info("Initializing database...")
+    db_success = await init_db()
+    
+    if db_success:
+        logger.info("Database initialized successfully")
+    else:
+        logger.warning("Database initialization failed, running with limited functionality")
+    
+    # Load ML model
+    try:
+        model_manager.load_model()
+    except Exception as e:
+        logger.warning(f"Model not available at startup: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Shutting down...")
+    await close_db()

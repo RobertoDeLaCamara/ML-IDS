@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML-IDS Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🛡️ ML-IDS Dashboard</h1>
+                <div class="connection-status">
+                    <span id="connection-indicator" class="status-dot disconnected"></span>
+                    <span id="connection-text">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <section class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-icon">🚨</div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Alerts</div>
+                    <div class="stat-value" id="total-alerts">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <div class="stat-label">Active Incidents</div>
+                    <div class="stat-value" id="active-incidents">0</div>
+                </div>
+            </div>
+            <div class="stat-card critical">
+                <div class="stat-icon">🔴</div>
+                <div class="stat-content">
+                    <div class="stat-label">Critical Alerts</div>
+                    <div class="stat-value" id="critical-alerts">0</div>
+                </div>
+            </div>
+            <div class="stat-card high">
+                <div class="stat-icon">🟠</div>
+                <div class="stat-content">
+                    <div class="stat-label">High Severity</div>
+                    <div class="stat-value" id="high-alerts">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid">
+            <!-- Attack Timeline Chart -->
+            <div class="card chart-card">
+                <h2>Attack Timeline</h2>
+                <canvas id="timeline-chart"></canvas>
+            </div>
+
+            <!-- Attack Distribution Chart -->
+            <div class="card chart-card">
+                <h2>Attack Types Distribution</h2>
+                <canvas id="distribution-chart"></canvas>
+            </div>
+
+            <!-- Recent Alerts Feed -->
+            <div class="card alerts-feed">
+                <h2>Recent Alerts</h2>
+                <div id="alerts-container" class="alerts-list">
+                    <p class="empty-state">No alerts yet...</p>
+                </div>
+            </div>
+
+            <!-- Top Attackers Table -->
+            <div class="card">
+                <h2>Top Attackers</h2>
+                <div id="attackers-container" class="table-container">
+                    <table class="attackers-table">
+                        <thead>
+                            <tr>
+                                <th>Source IP</th>
+                                <th>Attack Count</th>
+                                <th>Max Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attackers-tbody">
+                            <tr>
+                                <td colspan="3" class="empty-state">No data available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>ML-IDS - Machine Learning Intrusion Detection System</p>
+            <p>Last updated: <span id="last-updated">Never</span></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

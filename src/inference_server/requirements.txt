@@ -9,3 +9,8 @@ boto3
 requests
 numpy
 prometheus-fastapi-instrumentator
+sqlalchemy[asyncio]>=2.0
+asyncpg
+alembic
+aiosmtplib
+websockets

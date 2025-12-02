@@ -89,3 +89,78 @@ class PredictionRequest(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+# Alert and Incident Schemas
+
+class AlertResponse(BaseModel):
+    """Response model for Alert"""
+    id: int
+    attack_type: str
+    severity: str
+    src_ip: str
+    dst_ip: Optional[str]
+    timestamp: str
+    prediction_score: Optional[float]
+    acknowledged: bool
+    incident_id: Optional[int]
+    notes: Optional[str]
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "attack_type": "DDoS",
+                "severity": "high",
+                "src_ip": "192.168.1.100",
+                "dst_ip": "10.0.0.50",
+                "timestamp": "2025-12-02T20:00:00",
+                "prediction_score": 0.95,
+                "acknowledged": False,
+                "incident_id": None,
+                "notes": None
+            }
+        }
+
+
+class AlertUpdate(BaseModel):
+    """Request model for updating an alert"""
+    acknowledged: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+class IncidentResponse(BaseModel):
+    """Response model for Incident"""
+    id: int
+    title: str
+    description: Optional[str]
+    status: str
+    severity: str
+    assigned_to: Optional[str]
+    created_at: str
+    updated_at: str
+    resolved_at: Optional[str]
+    notes: Optional[str]
+    
+    class Config:
+        from_attributes = True
+
+
+class IncidentCreate(BaseModel):
+    """Request model for creating an incident"""
+    title: str
+    description: Optional[str] = None
+    status: Optional[str] = "open"
+    severity: Optional[str] = "medium"
+    assigned_to: Optional[str] = None
+
+
+class IncidentUpdate(BaseModel):
+    """Request model for updating an incident"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    severity: Optional[str] = None
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
