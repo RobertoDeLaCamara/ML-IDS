@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 import pandas as pd
 import os
 import json
@@ -13,8 +14,32 @@ from .database import init_db, close_db, health_check as db_health_check, is_db_
 from .alert_service import alert_service
 from .routers import alerts, incidents, dashboard
 from sqlalchemy.ext.asyncio import AsyncSession
+import yaml
 
-app = FastAPI()
+# FastAPI app with OpenAPI configuration
+app = FastAPI(
+    title="ML-IDS Inference Server API",
+    version="1.0.0-phase1",
+    description="""
+    Machine Learning-based Intrusion Detection System API
+    
+    **Phase 1 Features:**
+    - Real-time network traffic prediction
+    - Automatic alert creation and management
+    - Incident tracking and investigation
+    - Real-time dashboard with WebSocket updates
+    - Multi-channel notifications (Email, Slack, Webhooks)
+    
+    **Documentation:**
+    - Interactive API docs: `/docs` (Swagger UI)
+    - Alternative docs: `/redoc` (ReDoc)
+    - OpenAPI JSON spec: `/openapi.json`
+    - OpenAPI YAML spec: `/openapi.yaml`
+    """,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
 
 # Initialize Prometheus Instrumentator
 Instrumentator().instrument(app).expose(app)
@@ -51,6 +76,24 @@ async def root():
     """
     logger.info("Root endpoint called.")
     return {"message": "Inference server is running."}
+
+@app.get("/openapi.yaml", include_in_schema=False)
+async def get_openapi_yaml():
+    """
+    Serve the OpenAPI specification as YAML file.
+    
+    Returns the openapi.yaml file for API documentation.
+    """
+    openapi_file = os.path.join(os.path.dirname(__file__), "openapi.yaml")
+    if os.path.exists(openapi_file):
+        return FileResponse(
+            openapi_file,
+            media_type="application/x-yaml",
+            filename="openapi.yaml"
+        )
+    else:
+        raise HTTPException(status_code=404, detail="OpenAPI YAML file not found")
+
 
 @app.get("/health")
 async def health():

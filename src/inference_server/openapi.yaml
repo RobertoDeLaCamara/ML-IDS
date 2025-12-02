@@ -1,49 +1,68 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
   title: ML-IDS Inference Server API
-  version: 1.0.0
-  description: API for making predictions with the ML-IDS trained model.
+  version: 1.0.0-phase1
+  description: |
+    API for ML-based Intrusion Detection System with real-time monitoring, alert management, and incident tracking.
+    
+    **Phase 1 Features:**
+    - Network traffic prediction with ML model
+    - Automatic alert creation and management
+    - Incident tracking and investigation
+    - Real-time dashboard with WebSocket updates
+    - Multi-channel notifications (Email, Slack, Webhooks)
+    
+  contact:
+    name: ML-IDS Team
+  license:
+    name: MIT
+
 servers:
   - url: http://localhost:8000
+    description: Local development server
+  - url: https://mlids.example.com
+    description: Production server
+
+tags:
+  - name: Prediction
+    description: ML model prediction endpoints
+  - name: Alerts
+    description: Alert management operations
+  - name: Incidents
+    description: Incident tracking and management
+  - name: Dashboard
+    description: Dashboard statistics and WebSocket
+  - name: Health
+    description: Health check and monitoring
+
 paths:
-  /predict:
-    post:
-      summary: Predict class labels for input features
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                features:
-                  type: array
-                  items:
-                    type: array
-                    items:
-                      type: number
-              example:
-                features: [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+  /:
+    get:
+      tags:
+        - Health
+      summary: Root endpoint
+      description: Returns basic server information
       responses:
         '200':
-          description: Prediction results
+          description: Server running
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  predictions:
-                    type: array
-                    items:
-                      type: string
-              example:
-                predictions: ["BENIGN", "DoS"]
+                  message:
+                    type: string
+                    example: "Inference server is running."
+
   /health:
     get:
-      summary: Health check endpoint
+      tags:
+        - Health
+      summary: Health check
+      description: Returns server health status including model and database status
       responses:
         '200':
-          description: Server is healthy
+          description: Health status
           content:
             application/json:
               schema:
@@ -51,5 +70,687 @@ paths:
                 properties:
                   status:
                     type: string
+                    enum: [healthy, degraded, unhealthy]
+                    description: Overall system status
+                  model_initialized:
+                    type: boolean
+                    description: Whether ML model is loaded
+                  database:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [healthy, unavailable, unhealthy]
+                      status:
+                        type: string
+                example:
+                  status: healthy
+                  model_initialized: true
+                  database:
+                    database: healthy
+                    status: ok
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Returns Prometheus-formatted metrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /predict:
+    post:
+      tags:
+        - Prediction
+      summary: Make prediction
+      description: |
+        Predict attack type from network flow features. If attack is detected, 
+        automatically creates an alert in the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                flow_duration:
+                  type: number
+                tot_fwd_pkts:
+                  type: number
+                src_ip:
+                  type: string
+                dst_ip:
+                  type: string
               example:
-                status: ok
+                flow_duration: 1000.0
+                tot_fwd_pkts: 100
+                src_ip: "192.168.1.100"
+      responses:
+        '200':
+          description: Prediction successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prediction:
+                    type: array
+                    items:
+                      type: integer
+                    description: "0 = benign, non-zero = attack type"
+                example:
+                  prediction: [1]
+        '400':
+          description: Invalid request
+        '422':
+          description: Validation error
+        '503':
+          description: Model not available
+
+  /api/alerts:
+    get:
+      tags:
+        - Alerts
+      summary: List alerts
+      description: Get alerts with filtering and pagination
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: src_ip
+          in: query
+          schema:
+            type: string
+        - name: attack_type
+          in: query
+          schema:
+            type: string
+        - name: acknowledged
+          in: query
+          schema:
+            type: boolean
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Alert'
+
+  /api/alerts/{alert_id}:
+    get:
+      tags:
+        - Alerts
+      summary: Get alert
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '404':
+          description: Alert not found
+    
+    put:
+      tags:
+        - Alerts
+      summary: Update alert
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                acknowledged:
+                  type: boolean
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Alert updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+    
+    delete:
+      tags:
+        - Alerts
+      summary: Delete alert
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/alerts/{alert_id}/acknowledge:
+    post:
+      tags:
+        - Alerts
+      summary: Acknowledge alert
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+
+  /api/incidents:
+    get:
+      tags:
+        - Incidents
+      summary: List incidents
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, investigating, resolved, closed]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Incident'
+    
+    post:
+      tags:
+        - Incidents
+      summary: Create incident
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                severity:
+                  type: string
+                  enum: [low, medium, high, critical]
+                assigned_to:
+                  type: string
+      responses:
+        '201':
+          description: Incident created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+
+  /api/incidents/{incident_id}:
+    get:
+      tags:
+        - Incidents
+      summary: Get incident
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Incident details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+    
+    put:
+      tags:
+        - Incidents
+      summary: Update incident
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                  enum: [open, investigating, resolved, closed]
+                severity:
+                  type: string
+                  enum: [low, medium, high, critical]
+                assigned_to:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Incident updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+
+  /api/incidents/{incident_id}/alerts/{alert_id}:
+    post:
+      tags:
+        - Incidents
+      summary: Link alert to incident
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert linked to incident
+
+  /api/incidents/{incident_id}/alerts:
+    get:
+      tags:
+        - Incidents
+      summary: Get incident alerts
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of alerts for incident
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Alert'
+
+  /api/dashboard/stats:
+    get:
+      tags:
+        - Dashboard
+      summary: Get statistics
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_alerts:
+                    type: integer
+                  total_incidents:
+                    type: integer
+                  alerts_by_severity:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  active_incidents:
+                    type: integer
+                  time_period_hours:
+                    type: integer
+
+  /api/dashboard/attack-timeline:
+    get:
+      tags:
+        - Dashboard
+      summary: Get attack timeline
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+        - name: interval_minutes
+          in: query
+          schema:
+            type: integer
+            default: 60
+      responses:
+        '200':
+          description: Time-series attack data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format: date-time
+                        count:
+                          type: integer
+                        critical:
+                          type: integer
+                        high:
+                          type: integer
+                        medium:
+                          type: integer
+                        low:
+                          type: integer
+
+  /api/dashboard/top-attackers:
+    get:
+      tags:
+        - Dashboard
+      summary: Get top attackers
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Top attacking IPs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attackers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        src_ip:
+                          type: string
+                        attack_count:
+                          type: integer
+                        max_severity:
+                          type: string
+
+  /api/dashboard/attack-distribution:
+    get:
+      tags:
+        - Dashboard
+      summary: Get attack distribution
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+      responses:
+        '200':
+          description: Attack type distribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  distribution:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        attack_type:
+                          type: string
+                        count:
+                          type: integer
+
+  /api/dashboard/recent-alerts:
+    get:
+      tags:
+        - Dashboard
+      summary: Get recent alerts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Recent alerts for feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        attack_type:
+                          type: string
+                        severity:
+                          type: string
+                        src_ip:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                        acknowledged:
+                          type: boolean
+
+  /api/dashboard/live:
+    get:
+      tags:
+        - Dashboard
+      summary: WebSocket endpoint
+      description: |
+        WebSocket endpoint for real-time updates.
+        Connect using: ws://localhost:8000/api/dashboard/live
+        
+        Receives messages:
+        - { "type": "alert", "data": {...} }
+        - { "type": "stats_update", "data": {...} }
+      responses:
+        '101':
+          description: Switching protocols to WebSocket
+
+components:
+  schemas:
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        attack_type:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        src_ip:
+          type: string
+        dst_ip:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        prediction_score:
+          type: number
+          nullable: true
+        acknowledged:
+          type: boolean
+        incident_id:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        features:
+          type: object
+          nullable: true
+      example:
+        id: 1
+        attack_type: "DDoS"
+        severity: "high"
+        src_ip: "192.168.1.100"
+        dst_ip: "10.0.0.50"
+        timestamp: "2025-12-02T20:00:00Z"
+        prediction_score: null
+        acknowledged: false
+        incident_id: null
+        notes: null
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [open, investigating, resolved, closed]
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        assigned_to:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      example:
+        id: 1
+        title: "Multiple DDoS attacks from 192.168.1.100"
+        description: "Coordinated attack detected"
+        status: "open"
+        severity: "high"
+        assigned_to: null
+        created_at: "2025-12-02T20:00:00Z"
+        updated_at: "2025-12-02T20:00:00Z"
+        resolved_at: null
+        notes: null
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key authentication (Phase 2)
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT authentication (Phase 2)
+
+# Phase 1: No authentication required
+# Phase 2: Will add authentication to endpoints
+security: []

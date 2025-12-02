@@ -1,7 +1,16 @@
 # ML-IDS Inference Server API Documentation
 
-**Version:** Phase 1 (with Alert Management & Dashboard)  
-**OpenAPI Specification available:** [openapi.yaml](openapi.yaml)
+**Version:** Phase 1 (with Alert Management & Dashboard)
+
+## API Documentation
+
+Access the API documentation through multiple interfaces:
+
+- **[Swagger UI](http://localhost:8000/docs)** - Interactive API explorer (try it out!)
+- **[ReDoc](http://localhost:8000/redoc)** - Clean, alternative documentation UI  
+- **[OpenAPI JSON](http://localhost:8000/openapi.json)** - Machine-readable JSON specification
+- **[OpenAPI YAML](http://localhost:8000/openapi.yaml)** - Human-readable YAML specification
+- **[YAML File](openapi.yaml)** - Static YAML file in repository
 
 ## Overview
 
