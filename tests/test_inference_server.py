@@ -107,35 +107,4 @@ def test_health_endpoint():
     assert "model_initialized" in response.json()
     assert "database" in response.json()
 
-def test_metrics_endpoint():
-    """
-    Checks that the /metrics endpoint is available.
-    """
-    response = client.get("/metrics")
-    assert response.status_code == 200
-    assert "http_requests_total" in response.text
 
-def test_custom_metrics():
-    """
-    Checks that the custom attack metric is incremented when an attack is detected.
-    """
-    # Mock model to return an attack (e.g., class 1)
-    with patch('mlflow.sklearn.load_model') as mock_load:
-        mock_model = MagicMock()
-        mock_model.predict.return_value = np.array([1]) # Attack detected
-        mock_model.feature_names_in_ = ['Flow Duration', 'Total Fwd Packet']
-        mock_load.return_value = mock_model
-        
-        features = {
-            'flow_duration': 1000.0,
-            'src_ip': '192.168.1.100'
-        }
-        
-        # Make prediction request
-        client.post("/predict", json=features)
-        
-        # Check metrics
-        response = client.get("/metrics")
-        assert response.status_code == 200
-        # Check for the metric and the specific label
-        assert 'ml_ids_detected_attacks_total{attack_type="1",src_ip="192.168.1.100"} 1.0' in response.text

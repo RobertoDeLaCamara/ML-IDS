@@ -7,8 +7,7 @@ import json
 import numpy as np
 import logging
 from dotenv import load_dotenv
-from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Counter
+
 from .schemas import PredictionRequest
 from .database import init_db, close_db, health_check as db_health_check, is_db_available, get_db
 from .alert_service import alert_service
@@ -41,15 +40,9 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# Initialize Prometheus Instrumentator
-Instrumentator().instrument(app).expose(app)
 
-# Custom Metrics
-ATTACK_COUNTER = Counter(
-    "ml_ids_detected_attacks_total",
-    "Total number of detected attacks by type and source IP",
-    ["attack_type", "src_ip"]
-)
+
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -199,11 +192,11 @@ async def predict(features: PredictionRequest, db: AsyncSession = Depends(get_db
             log_dir = os.environ.get("LOG_DIR", "/app/logs")
             os.makedirs(log_dir, exist_ok=True)
             
+
             if prediction[0] != 0:
-                # Log attack to Prometheus
+                # Log attack to database and file
                 attack_type = str(prediction[0])
                 src_ip = features.src_ip or "unknown"
-                ATTACK_COUNTER.labels(attack_type=attack_type, src_ip=src_ip).inc()
 
                 # Create alert in database
                 if db is not None:

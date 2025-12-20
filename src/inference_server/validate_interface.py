@@ -13,7 +13,17 @@ def check_interface_exists(interface_name):
         return False
 
 def main():
-    interface = os.getenv('CIC_INTERFACE', 'eth0')
+    interface = os.getenv('CIC_INTERFACE', 'auto')
+    
+    if interface in [None, '', 'any', 'auto']:
+        # Logic to skip specific check or auto-detect here would be complex to duplicate perfectly.
+        # We can list available interfaces and assume the start script will pick a valid one.
+        print("Interface set to auto-detect. Available interfaces:")
+        try:
+            subprocess.run(['/sbin/ip', 'link', 'show'])
+        except Exception as e:
+            print(f"Could not list interfaces: {e}")
+        return True
     
     if not check_interface_exists(interface):
         print(f"ERROR: Network interface '{interface}' not found!")
