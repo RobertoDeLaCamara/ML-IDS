@@ -17,7 +17,7 @@ from .models import Base
 logger = logging.getLogger(__name__)
 
 # Database connection configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://mlids:mlids_password@localhost:5432/mlids")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./mlids.db")
 
 # Global engine and session maker
 engine = None

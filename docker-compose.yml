@@ -1,24 +1,6 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: ml-ids-postgres
-    network_mode: container:jenkins-agent-with-python # Use service name or container name if external
-    environment:
-      - POSTGRES_USER=mlids
-      - POSTGRES_PASSWORD=mlids_password
-      - POSTGRES_DB=mlids
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # ports:  <-- Ports not needed in container network mode, they share the host's ports (the agent's)
-    #   - "5432:5432"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U mlids" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
 
   ml-ids:
     build:
@@ -30,9 +12,9 @@ services:
     cap_add:
       - NET_RAW
       - NET_ADMIN
-    depends_on:
-      postgres:
-        condition: service_healthy
+    #    depends_on:
+    #      postgres:
+    #        condition: service_healthy
     healthcheck:
       test: [ "CMD", "python3", "/app/validate_interface.py" ]
       interval: 30s
@@ -40,7 +22,7 @@ services:
       retries: 3
     environment:
       # Database configuration
-      - DATABASE_URL=postgresql+asyncpg://mlids:mlids_password@localhost:5432/mlids
+      - DATABASE_URL=sqlite+aiosqlite:////app/dist/mlids.db
 
       # MLflow configuration (required)
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
@@ -78,10 +60,6 @@ services:
       # Mount logs directory for persistence
       - /var/log/ml-ids:/app/logs
     restart: unless-stopped
-
-volumes:
-  postgres_data:
-    driver: local
 
 # To use this file:
 # 1. Update environment variables with your actual values
