@@ -182,10 +182,10 @@ async def predict(features: PredictionRequest, db: AsyncSession = Depends(get_db
         # Create input vector based on model features, defaulting to 0 for missing or None values
         input_vector = [mapped_features.get(feat, 0) or 0 for feat in model_manager.features]
         
-        # Reshape for single sample
-        input_array = np.array(input_vector).reshape(1, -1)
+        # Create input DataFrame with feature names to avoid warning
+        input_df = pd.DataFrame([input_vector], columns=model_manager.features)
         
-        prediction = model_manager.model.predict(input_array)
+        prediction = model_manager.model.predict(input_df)
         
         # Log predictions with error handling
         try:
