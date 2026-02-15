@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+import math
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import List, Optional
 
 class PredictionRequest(BaseModel):
     """
@@ -86,6 +87,61 @@ class PredictionRequest(BaseModel):
     
     # Optional metadata for observability
     src_ip: Optional[str] = Field(None, alias="src_ip")
+
+    # Validation warnings collected during model validation
+    _validation_warnings: List[str] = []
+
+    # Fields that must be non-negative
+    _NON_NEGATIVE_FIELDS = {
+        "flow_duration", "tot_fwd_pkts", "tot_bwd_pkts",
+        "totlen_fwd_pkts", "totlen_bwd_pkts",
+        "fwd_pkt_len_max", "fwd_pkt_len_min", "fwd_pkt_len_mean",
+        "bwd_pkt_len_max", "bwd_pkt_len_min", "bwd_pkt_len_mean",
+        "pkt_len_min", "pkt_len_max", "pkt_len_mean",
+        "fwd_act_data_pkts",
+        "subflow_fwd_pkts", "subflow_fwd_byts",
+        "subflow_bwd_pkts", "subflow_bwd_byts",
+    }
+
+    # Flag fields that should be 0 or 1
+    _FLAG_FIELDS = {
+        "fin_flag_cnt", "syn_flag_cnt", "rst_flag_cnt", "psh_flag_cnt",
+        "ack_flag_cnt", "urg_flag_cnt", "cwr_flag_count", "ece_flag_cnt",
+    }
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def replace_nan_inf(cls, v, info):
+        """Replace NaN and Inf values with 0.0."""
+        if info.field_name == "src_ip":
+            return v
+        if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            return 0.0
+        return v
+
+    @model_validator(mode="after")
+    def validate_ranges(self):
+        """Clamp out-of-range values and collect warnings."""
+        warnings = []
+
+        for field_name in self._NON_NEGATIVE_FIELDS:
+            val = getattr(self, field_name, None)
+            if val is not None and val < 0:
+                warnings.append(f"{field_name}: negative value {val} clamped to 0")
+                setattr(self, field_name, 0.0)
+
+        for field_name in self._FLAG_FIELDS:
+            val = getattr(self, field_name, None)
+            if val is not None:
+                if val < 0:
+                    warnings.append(f"{field_name}: value {val} clamped to 0")
+                    setattr(self, field_name, 0.0)
+                elif val > 1:
+                    warnings.append(f"{field_name}: value {val} clamped to 1")
+                    setattr(self, field_name, 1.0)
+
+        self._validation_warnings = warnings
+        return self
 
     class Config:
         populate_by_name = True

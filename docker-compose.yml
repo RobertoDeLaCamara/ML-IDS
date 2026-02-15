@@ -59,7 +59,12 @@ services:
     volumes:
       # Mount logs directory for persistence
       - /var/log/ml-ids:/app/logs
+      # Model cache for MLflow fallback
+      - ml-ids-model-cache:/app/model_cache
     restart: unless-stopped
+
+volumes:
+  ml-ids-model-cache:
 
 # To use this file:
 # 1. Update environment variables with your actual values

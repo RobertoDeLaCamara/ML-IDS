@@ -1,3 +1,5 @@
+import time as _time
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -11,6 +13,8 @@ from dotenv import load_dotenv
 from .schemas import PredictionRequest
 from .database import init_db, close_db, health_check as db_health_check, is_db_available, get_db
 from .alert_service import alert_service
+from .auth import APIKeyMiddleware
+from .metrics import metrics_response, PREDICTIONS_TOTAL, PREDICTION_LATENCY, MODEL_LOADED
 from .routers import alerts, incidents, dashboard
 from sqlalchemy.ext.asyncio import AsyncSession
 import yaml
@@ -40,7 +44,7 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-
+app.add_middleware(APIKeyMiddleware)
 
 
 
@@ -59,6 +63,12 @@ static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/dashboard", StaticFiles(directory=static_dir, html=True), name="dashboard")
     logger.info("Dashboard static files mounted at /dashboard")
+
+@app.get("/metrics", include_in_schema=False)
+async def get_metrics():
+    """Prometheus metrics endpoint."""
+    return metrics_response()
+
 
 @app.get("/")
 async def root():
@@ -106,51 +116,92 @@ async def health():
     return {
         "status": overall_status,
         "model_initialized": model_manager.initialized,
+        "model_source": model_manager.model_source,
+        "model_loaded_at": model_manager.model_loaded_at,
         "database": db_status
     }
 
+import joblib
 import mlflow
 from mlflow.exceptions import MlflowException
+from datetime import datetime as _dt
 
 class ModelManager:
-    def __init__(self):
-        """
-        Initializes the ModelManager.
+    MODEL_CACHE_DIR = os.environ.get("MODEL_CACHE_DIR", "/app/model_cache")
+    LOCAL_MODEL_PATH = os.path.join(MODEL_CACHE_DIR, "model.joblib")
+    LOCAL_META_PATH = os.path.join(MODEL_CACHE_DIR, "model_meta.json")
 
-        Sets the model, features, and initialized attributes to None or False, respectively.
-        """
+    def __init__(self):
         self.model = None
         self.features = None
         self.initialized = False
-    
+        self.model_source: str = "none"
+        self.model_loaded_at: str | None = None
+
+    def _save_to_cache(self):
+        """Persist the current model and metadata to local disk."""
+        try:
+            os.makedirs(self.MODEL_CACHE_DIR, exist_ok=True)
+            joblib.dump(self.model, self.LOCAL_MODEL_PATH)
+            meta = {
+                "features": list(self.features),
+                "timestamp": _dt.utcnow().isoformat(),
+                "source": "mlflow",
+            }
+            with open(self.LOCAL_META_PATH, "w") as f:
+                json.dump(meta, f)
+            logger.info(f"Model cached locally at {self.MODEL_CACHE_DIR}")
+        except Exception as e:
+            logger.warning(f"Failed to cache model locally: {e}")
+
+    def _load_from_cache(self) -> bool:
+        """Try loading a locally cached model. Returns True on success."""
+        try:
+            if not os.path.exists(self.LOCAL_MODEL_PATH) or not os.path.exists(self.LOCAL_META_PATH):
+                return False
+            self.model = joblib.load(self.LOCAL_MODEL_PATH)
+            with open(self.LOCAL_META_PATH) as f:
+                meta = json.load(f)
+            self.features = meta["features"]
+            self.model_source = "cache"
+            self.model_loaded_at = _dt.utcnow().isoformat()
+            self.initialized = True
+            MODEL_LOADED.set(1)
+            logger.info("Model loaded from local cache")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load model from cache: {e}")
+            return False
+
     def load_model(self):
-        """
-        Loads the ML model from MLflow.
-
-        If the model has already been loaded, this method does nothing.
-        Otherwise, it sets the MLflow tracking URI and model name from environment variables,
-        loads the model, and extracts the feature names from the model.
-
-        If the model cannot be loaded, this method logs an error and raises an HTTPException
-        with status code 503 and a detail message indicating that the model is not available.
-        """
+        """Load the ML model from MLflow, falling back to local cache."""
         if self.initialized:
             return
-        
+
         tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
-        if not tracking_uri:
-            raise HTTPException(status_code=503, detail="MLFLOW_TRACKING_URI environment variable is required")
-        mlflow.set_tracking_uri(tracking_uri)
         model_name = os.environ.get("MLFLOW_MODEL_NAME", "models:/ML_IDS_Model_v1/Production")
-        
-        try:
-            self.model = mlflow.sklearn.load_model(model_name)
-            self.features = self.model.feature_names_in_
-            self.initialized = True
-            logger.info("Model loaded successfully.")
-        except (MlflowException, AttributeError) as e:
-            logger.error(f"Model not available: {e}")
-            raise HTTPException(status_code=503, detail=f"Model not available: {e}")
+
+        # Try MLflow first
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
+            try:
+                self.model = mlflow.sklearn.load_model(model_name)
+                self.features = self.model.feature_names_in_
+                self.initialized = True
+                self.model_source = "mlflow"
+                self.model_loaded_at = _dt.utcnow().isoformat()
+                logger.info("Model loaded successfully from MLflow.")
+                MODEL_LOADED.set(1)
+                self._save_to_cache()
+                return
+            except (MlflowException, AttributeError, Exception) as e:
+                logger.warning(f"MLflow model load failed: {e}. Trying local cache...")
+
+        # Fallback to local cache
+        if self._load_from_cache():
+            return
+
+        raise HTTPException(status_code=503, detail="Model not available: MLflow unreachable and no local cache")
 
 model_manager = ModelManager()
 
@@ -184,8 +235,14 @@ async def predict(features: PredictionRequest, db: AsyncSession = Depends(get_db
         
         # Create input DataFrame with feature names to avoid warning
         input_df = pd.DataFrame([input_vector], columns=model_manager.features)
-        
+
+        _pred_start = _time.monotonic()
         prediction = model_manager.model.predict(input_df)
+        PREDICTION_LATENCY.observe(_time.monotonic() - _pred_start)
+
+        # Record prediction result
+        pred_label = "attack" if prediction[0] != 0 else "benign"
+        PREDICTIONS_TOTAL.labels(result=pred_label).inc()
         
         # Log predictions with error handling
         try:
@@ -225,7 +282,10 @@ async def predict(features: PredictionRequest, db: AsyncSession = Depends(get_db
         except IOError as e:
             logger.warning(f"Failed to write prediction log: {e}")
         
-        return {"prediction": prediction.tolist()}
+        result = {"prediction": prediction.tolist()}
+        if hasattr(features, '_validation_warnings') and features._validation_warnings:
+            result["validation_warnings"] = features._validation_warnings
+        return result
         
     except Exception as e:
         logger.error(f"Prediction error: {e}")

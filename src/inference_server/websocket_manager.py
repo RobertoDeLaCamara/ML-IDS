@@ -9,6 +9,8 @@ from typing import List, Set
 from fastapi import WebSocket
 import json
 
+from .metrics import ACTIVE_WS_CONNECTIONS
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,11 +24,13 @@ class WebSocketManager:
         """Accept a new WebSocket connection"""
         await websocket.accept()
         self.active_connections.add(websocket)
+        ACTIVE_WS_CONNECTIONS.set(len(self.active_connections))
         logger.info(f"WebSocket connection established. Total connections: {len(self.active_connections)}")
     
     def disconnect(self, websocket: WebSocket):
         """Remove a WebSocket connection"""
         self.active_connections.discard(websocket)
+        ACTIVE_WS_CONNECTIONS.set(len(self.active_connections))
         logger.info(f"WebSocket connection closed. Remaining connections: {len(self.active_connections)}")
     
     async def broadcast(self, message:  dict):

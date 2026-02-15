@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from ..database import get_db
 from ..models import Alert, Incident, Metric, SeverityLevel, IncidentStatus
 from ..websocket_manager import ws_manager
+from ..auth import verify_ws_api_key
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -256,18 +257,23 @@ async def get_recent_alerts(
 async def websocket_endpoint(websocket: WebSocket):
     """
     WebSocket endpoint for real-time updates.
-    
+
     Clients connect here to receive live alert notifications.
+    Pass api_key as a query parameter for authentication.
     """
+    if not await verify_ws_api_key(websocket):
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+
     await ws_manager.connect(websocket)
-    
+
     try:
         while True:
             # Keep connection alive and receive any client messages
             data = await websocket.receive_text()
             # Echo back or handle client messages if needed
             logger.debug(f"Received from client: {data}")
-    
+
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
     except Exception as e:

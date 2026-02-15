@@ -22,6 +22,7 @@ from .models import (
 )
 from .notifications import notification_service
 from .websocket_manager import ws_manager
+from .metrics import ALERTS_CREATED_TOTAL
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,9 @@ class AlertService:
             f"Created alert ID {alert.id}: {attack_type} from {src_ip} "
             f"(severity: {severity.value})"
         )
-        
+
+        ALERTS_CREATED_TOTAL.labels(severity=severity.value).inc()
+
         # Evaluate alert rules
         await self.evaluate_alert_rules(db, alert)
         

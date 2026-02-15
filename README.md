@@ -11,6 +11,10 @@ The ML-IDS (Machine Learning-based Intrusion Detection System) is a comprehensiv
 - **Real-time Detection**: Continuous network traffic analysis using CICFlowMeter
 - **Advanced ML Model**: Uses Random Forest and Stacking Classifier for classification
 - **REST API**: Inference server with prediction and alert endpoints
+- **API Key Authentication**: Header-based auth middleware with public path bypass and WebSocket support
+- **Feature Validation**: NaN/Inf replacement, non-negative clamping, flag range validation with warnings
+- **Model Fallback**: Local model caching with automatic fallback when MLflow is unreachable
+- **Prometheus Metrics**: Prediction counters, latency histograms, model and WebSocket gauges at `/metrics`
 - **PostgreSQL Database**: Persistent storage for alerts, incidents, and metrics
 - **Alert Management**: Intelligent alerting with severity classification and deduplication
 - **Notification System**: Email (SMTP), Slack, and webhook notifications
@@ -58,7 +62,9 @@ ML-IDS/
 │   └── inference_server/
 │       ├── Dockerfile           # Docker image definition
 │       ├── main.py              # Main FastAPI application
-│       ├── schemas.py           # Pydantic models for requests/responses
+│       ├── auth.py              # API Key authentication middleware
+│       ├── metrics.py           # Prometheus metrics definitions
+│       ├── schemas.py           # Pydantic models with validation
 │       ├── models.py            # SQLAlchemy database models
 │       ├── database.py          # Database connection management
 │       ├── alert_service.py     # Alert management service
@@ -78,6 +84,8 @@ ML-IDS/
 └── tests/
     ├── __init__.py
     ├── curl_predict_full.sh
+    ├── test_auth.py             # Authentication tests
+    ├── test_validation.py       # Feature validation tests
     ├── test_inference_server.py # API tests
     └── test_database.py         # Database model tests
 ```
@@ -336,6 +344,8 @@ volumes:
    {
      "status": "healthy",
      "model_initialized": true,
+     "model_source": "mlflow",
+     "model_loaded_at": "2026-02-15T10:00:00",
      "database": {
        "database": "healthy",
        "status": "ok"
@@ -352,6 +362,7 @@ volumes:
    ```bash
    curl -X POST http://localhost:8000/predict \
      -H "Content-Type: application/json" \
+     -H "X-API-Key: your-api-key-here" \
      -d '{"flow_duration": 1000.0, "tot_fwd_pkts": 100, "src_ip": "192.168.1.100"}'
    ```
 
@@ -393,6 +404,11 @@ volumes:
 | `SMTP_PASSWORD` | SMTP password | - |
 | `SMTP_FROM` | From address | `ML-IDS Alerts <alerts@mlids.local>` |
 | `SLACK_WEBHOOK_URL` | Slack webhook URL | - |
+| **Authentication** | | |
+| `ML_IDS_AUTH_ENABLED` | Enable API key authentication | `true` |
+| `ML_IDS_API_KEYS` | Comma-separated API keys | Required in production |
+| **Model Cache** | | |
+| `MODEL_CACHE_DIR` | Local model cache directory | `/app/model_cache` |
 | **Dashboard** | | |
 | `DASHBOARD_ENABLED` | Enable dashboard | `true` |
 
@@ -429,6 +445,7 @@ The ML-IDS inference server provides a comprehensive REST API for predictions, a
 ```bash
 POST /predict
 Content-Type: application/json
+X-API-Key: your-api-key
 
 {
   "flow_duration": 1000.0,
@@ -440,12 +457,30 @@ Content-Type: application/json
 
 If an attack is detected (prediction != 0), an alert is automatically created in the database.
 
+Input features are automatically validated:
+- NaN and Inf values are replaced with 0.0
+- Non-negative fields (packet counts, byte counts, durations) are clamped to 0
+- Flag fields (SYN, ACK, FIN, etc.) are clamped to [0, 1]
+- Validation warnings are included in the response when corrections are applied
+
 #### `/health` - Health Check
 ```bash
 GET /health
 ```
 
-Returns service status, model initialization state, and database health.
+Returns service status, model initialization state, model source (mlflow/cache), and database health.
+
+#### `/metrics` - Prometheus Metrics
+```bash
+GET /metrics
+```
+
+Returns Prometheus-compatible metrics including:
+- `mlids_predictions_total` (counter, labels: result)
+- `mlids_alerts_created_total` (counter, labels: severity)
+- `mlids_prediction_latency_seconds` (histogram)
+- `mlids_model_loaded` (gauge)
+- `mlids_active_websocket_connections` (gauge)
 
 ### Alert Management API
 
@@ -548,7 +583,8 @@ GET /api/dashboard/recent-alerts?limit=20
 
 #### WebSocket (Real-time Updates)
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/api/dashboard/live');
+// Pass API key as query parameter for WebSocket auth
+const ws = new WebSocket('ws://localhost:8000/api/dashboard/live?api_key=your-api-key');
 
 ws.onmessage = (event) => {
   const message = JSON.parse(event.data);
@@ -558,12 +594,6 @@ ws.onmessage = (event) => {
   }
 };
 ```
-
-### Metrics
-
-Prometheus metrics available at `/metrics`:
-- `ml_ids_detected_attacks_total` - Counter of detected attacks by type and source IP
-- Standard FastAPI metrics (request count, duration, etc.)
 
 ---
 
@@ -612,7 +642,7 @@ The ML-IDS includes a professional web dashboard for real-time monitoring at `/d
 1. Start the services: `docker-compose up -d`
 2. Open browser to: `http://localhost:8000/dashboard`
 3. Dashboard updates automatically via WebSocket
-4. No login required (authentication coming in Phase 2)
+4. API Key authentication is required for API endpoints (dashboard static files are public)
 
 ---
 
@@ -710,8 +740,13 @@ For production environments, Phase 1 provides:
 - **Async Architecture**: Non-blocking database operations
 - **Connection Pooling**: Efficient database connection management
 
-Phase 2 (Future) will add:
-- **Authentication**: JWT tokens and API keys
+Phase 2 (Current):
+- **API Key Authentication**: Header-based auth with public path bypass
+- **Feature Validation**: NaN/Inf/range validation with warnings
+- **Model Fallback**: Local caching for MLflow unavailability
+- **Prometheus Metrics**: Counters, histograms, and gauges at `/metrics`
+
+Phase 3 (Future):
 - **Rate Limiting**: Per-endpoint rate limits
 - **User Management**: Role-based access control
 - **Advanced Analytics**: Pattern detection and threat intelligence
@@ -722,7 +757,7 @@ Phase 2 (Future) will add:
 
 This repository provides a complete pipeline for developing, evaluating, and deploying machine learning models for network intrusion detection, using real-world datasets and modern ML engineering practices.
 
-**Phase 1 Enhancements** (Current):
+**Phase 1** (Foundation):
 - ✅ PostgreSQL database integration
 - ✅ Intelligent alert management with severity classification
 - ✅ Multi-channel notifications (Email, Slack, Webhooks)
@@ -730,6 +765,12 @@ This repository provides a complete pipeline for developing, evaluating, and dep
 - ✅ Comprehensive REST API for alerts and incidents
 - ✅ Alert deduplication and rules engine
 - ✅ Incident tracking and management
+
+**Phase 2** (Hardening):
+- ✅ API Key authentication middleware (X-API-Key header + WebSocket query param)
+- ✅ Feature validation (NaN/Inf replacement, non-negative clamping, flag range enforcement)
+- ✅ Model fallback with local joblib cache when MLflow is unreachable
+- ✅ Prometheus metrics endpoint (`/metrics`) with prediction, alert, and connection gauges
 
 The system is structured for reproducibility, extensibility, and ease of deployment in production environments, with complete CICFlowMeter integration for real-time analysis.
 
