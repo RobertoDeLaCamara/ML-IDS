@@ -73,9 +73,10 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo 'Running SonarQube analysis...'
-                sh '''
+                sh """
+                    HOST_WORKSPACE=\$(echo \${WORKSPACE} | sed 's|/var/jenkins_home|/home/roberto/jenkins_home|')
                     docker run --rm \
-                        -v "$(pwd):/usr/src" \
+                        -v "\${HOST_WORKSPACE}:/usr/src" \
                         sonarsource/sonar-scanner-cli \
                         -Dsonar.projectKey=ml-ids \
                         -Dsonar.sources=src \
@@ -86,7 +87,7 @@ pipeline {
                         -Dsonar.login=admin \
                         -Dsonar.password=patilla1 \
                         -Dsonar.scm.disabled=true
-                '''
+                """
             }
         }
 
