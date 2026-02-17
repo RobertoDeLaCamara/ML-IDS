@@ -1,32 +1,78 @@
 pipeline {
-    agent {
-        label 'pytest'// Agent labels
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
     }
-     environment {
-        VENV_DIR = 'venv'  // Virtual environment name
+
+    environment {
+        REGISTRY = "192.168.1.86:5000"
+        IMAGE_NAME = "ml-ids"
+        NO_PROXY = 'localhost,127.0.0.1,192.168.1.0/24,192.168.1.86,192.168.1.62,192.168.1.45'
+        no_proxy = 'localhost,127.0.0.1,192.168.1.0/24,192.168.1.86,192.168.1.62,192.168.1.45'
     }
+
     stages {
-        stage('Setup') {
+        stage('Checkout') {
             steps {
-                sh '''
-                    python3 -m venv ${VENV_DIR}
-                    . ${VENV_DIR}/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
-                    mkdir -p reports
-                '''
+                checkout scm
             }
         }
+
+        stage('Build Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh "docker build -f src/inference_server/Dockerfile -t ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER} -t ${REGISTRY}/${IMAGE_NAME}:latest ."
+            }
+        }
+
         stage('Run Tests') {
             steps {
-                sh '''
-                    . ${VENV_DIR}/bin/activate && pip install pytest 
-                    pytest tests/ --disable-warnings --junitxml=reports/results.xml
-                '''
+                echo 'Running tests inside container...'
+                script {
+                    try {
+                        sh """
+                        docker run --name test-mlids-\${BUILD_NUMBER} \
+                            -e DATABASE_URL=sqlite+aiosqlite:////app/dist/mlids.db \
+                            ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} \
+                            python -m pytest tests/ -v \
+                                --junitxml=test-results.xml \
+                                --disable-warnings
+                        """
+                    } finally {
+                        sh "docker cp test-mlids-\${BUILD_NUMBER}:/app/test-results.xml \${WORKSPACE}/test-results.xml || true"
+                        sh "docker rm test-mlids-\${BUILD_NUMBER} || true"
+                    }
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'test-results.xml'
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                echo "Pushing image to ${REGISTRY}..."
+                sh "docker push ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER}"
+                sh "docker push ${REGISTRY}/${IMAGE_NAME}:latest"
             }
         }
     }
+
     post {
         always {
-            junit '**/reports/*.xml'
+            sh 'rm -f test-results.xml || true'
+            sh "docker rmi ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} || true"
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
