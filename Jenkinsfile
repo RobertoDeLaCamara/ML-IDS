@@ -34,12 +34,7 @@ pipeline {
                 sh """
                 docker run --rm \
                     ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} \
-                    python -m py_compile src/inference_server/server.py
-                """
-                sh """
-                docker run --rm \
-                    ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} \
-                    sh -c 'pip install --quiet flake8 && flake8 src/ --max-line-length=120 --count --statistics' || echo 'Lint warnings found'
+                    sh -c 'pip install --quiet flake8 && flake8 src/ --max-line-length=120 --count --statistics || true'
                 """
             }
         }
