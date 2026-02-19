@@ -186,7 +186,13 @@ class ModelManager:
             mlflow.set_tracking_uri(tracking_uri)
             try:
                 self.model = mlflow.sklearn.load_model(model_name)
-                self.features = self.model.feature_names_in_
+                # Some models might not have feature_names_in_
+                if hasattr(self.model, "feature_names_in_"):
+                    self.features = self.model.feature_names_in_
+                else:
+                    logger.warning("Model does not have feature_names_in_. Feature mapping might be affected.")
+                    self.features = None
+                
                 self.initialized = True
                 self.model_source = "mlflow"
                 self.model_loaded_at = _dt.utcnow().isoformat()

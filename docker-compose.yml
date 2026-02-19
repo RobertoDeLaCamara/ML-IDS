@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: src/inference_server/Dockerfile
     container_name: ml-ids
-    network_mode: container:jenkins-agent-with-python
+    network_mode: host
     privileged: true
     cap_add:
       - NET_RAW
@@ -22,7 +22,7 @@ services:
       retries: 3
     environment:
       # Database configuration
-      - DATABASE_URL=sqlite+aiosqlite:////app/dist/mlids.db
+      - DATABASE_URL=sqlite+aiosqlite:////app/logs/mlids.db
 
       # MLflow configuration (required)
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
@@ -36,10 +36,10 @@ services:
       - START_CICFLOWMETER=true
 
       # Model configuration
-      - MLFLOW_MODEL_NAME=models:/ML_IDS_Model_v1/latest
+      - MLFLOW_MODEL_NAME=${MLFLOW_MODEL_NAME:-models:/ML_IDS_Model_v1/latest}
 
       # CICFlowMeter configuration
-      - CIC_INTERFACE=${CIC_INTERFACE:-eth0}
+      - CIC_INTERFACE=${CIC_INTERFACE:-eth1}
 
       # Optional configuration
       - LOG_DIR=/app/logs
@@ -66,7 +66,7 @@ services:
 volumes:
   ml-ids-model-cache:
 
-# To use this file:
-# 1. Update environment variables with your actual values
-# 2. Run: docker-compose up -d
-# 3. Check logs: docker-compose logs -f ml-ids
+    # To use this file:
+    # 1. Update environment variables with your actual values
+    # 2. Run: docker-compose up -d
+    # 3. Check logs: docker-compose logs -f ml-ids
