@@ -6,6 +6,7 @@ import pytest
 import pytest_asyncio
 import os
 import sys
+import uuid
 from datetime import datetime
 
 # Add src to path
@@ -26,14 +27,18 @@ os.environ["DATABASE_URL"] = "postgresql+asyncpg://mlids:mlids_password@localhos
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
     """Create test database session"""
+    from src.inference_server.database import async_session_maker, db_available
     # Initialize database
     await init_db()
-    
-    # Get session
-    async for session in get_db():
+
+    if not db_available or not async_session_maker:
+        yield None
+        await close_db()
+        return
+
+    async with async_session_maker() as session:
         yield session
-        break
-    
+
     # Cleanup
     await close_db()
 
@@ -174,8 +179,9 @@ async def test_create_alert_rule(db_session):
     if db_session is None:
         pytest.skip("Database not available")
     
+    unique_name = f"Test Rule {uuid.uuid4().hex[:8]}"
     rule = AlertRule(
-        name="Test Rule",
+        name=unique_name,
         description="Test alert rule",
         condition="attack_count > threshold",
         threshold=5.0,
@@ -190,7 +196,7 @@ async def test_create_alert_rule(db_session):
     await db_session.refresh(rule)
     
     assert rule.id is not None
-    assert rule.name == "Test Rule"
+    assert rule.name == unique_name
     assert rule.threshold == 5.0
 
 

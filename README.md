@@ -191,7 +191,20 @@ https://www.unb.ca/cic/datasets/ids-2017.html
 ## Testing
 
 - **Location:** `tests/`
-- **Files:** Unit and integration tests for inference, as well as a shell script for testing prediction endpoints.
+- **Run all tests:**
+  ```bash
+  pytest tests/ -v
+  ```
+- **Test modules:**
+  - `test_auth.py` — API key authentication middleware (18 tests): key parsing, auth enable/disable, HTTP and WebSocket auth flows
+  - `test_database.py` — Database models and async session lifecycle (7 tests): CRUD for alerts, incidents, metrics, notification channels, alert rules, and severity-based queries
+  - `test_inference_server.py` — FastAPI endpoint tests (4 tests): prediction with valid/invalid payloads, health endpoint
+  - `test_validation.py` — Input feature validation (15 tests): NaN/Inf replacement, non-negative clamping, flag range enforcement, clean input passthrough
+
+- **Notes:**
+  - Database tests use SQLite (aiosqlite) as a local fallback when PostgreSQL is unavailable
+  - Inference server tests mock MLflow model loading for offline execution
+  - All 44 tests pass without external service dependencies
 
 ---
 
