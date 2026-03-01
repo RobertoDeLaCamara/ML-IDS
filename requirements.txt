@@ -1,4 +1,4 @@
-aiohttp==3.10.11
+aiohttp==3.13.3
 aiosmtplib==3.0.2
 alembic==1.15.1
 annotated-types==0.7.0
@@ -21,9 +21,9 @@ debugpy==1.8.13
 decorator==5.2.1
 deprecated==1.2.18
 executing==2.2.0
-fastapi==0.115.11
-flask==3.1.1
-fonttools==4.56.0
+fastapi==0.115.12
+flask==3.1.3
+fonttools==4.60.2
 gitdb==4.0.12
 gitpython==3.1.44
 graphene==3.4.3
@@ -58,8 +58,8 @@ markupsafe==3.0.2
 matplotlib==3.10.1
 matplotlib-inline==0.1.7
 mdurl==0.1.2
-mlflow==2.22.0
-mlflow-skinny==2.22.0
+mlflow==2.22.4
+mlflow-skinny==2.22.4
 namex==0.0.8
 nest-asyncio==1.6.0
 notebook==7.3.1
@@ -72,7 +72,7 @@ packaging==24.2
 pandas==2.2.3
 parso==0.8.4
 pexpect==4.9.0
-pillow==11.1.0
+pillow==12.1.1
 platformdirs==4.3.6
 plotly==5.22.0
 pluggy==1.5.0
@@ -81,7 +81,7 @@ psutil==7.0.0
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyarrow==19.0.1
-pyasn1==0.6.1
+pyasn1==0.6.2
 pyasn1_modules==0.4.1
 pydantic==2.10.6
 pydantic_core==2.27.2
@@ -92,14 +92,14 @@ pytest-asyncio==0.26.0
 pytest-cov==6.0.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
-python-multipart==0.0.20
+python-multipart==0.0.22
 pytz==2025.1
 pyyaml==6.0.2
 pyzmq==26.3.0
 rich==13.9.4
 rsa==4.9
 s3transfer==0.11.4
-scapy==2.4.5
+scapy==2.6.2
 scikit-learn==1.6.1
 scipy==1.15.2
 seaborn==0.13.2
@@ -109,9 +109,9 @@ sklearn-compat==0.1.3
 smmap==5.0.2
 sniffio==1.3.1
 sqlalchemy==2.0.39
-sqlparse==0.5.3
+sqlparse==0.5.4
 stack-data==0.6.3
-starlette==0.46.0
+starlette==0.49.1
 termcolor==2.5.0
 threadpoolctl==3.6.0
 tornado==6.5.1
@@ -119,11 +119,11 @@ tqdm==4.67.1
 traitlets==5.14.3
 typing_extensions==4.12.2
 tzdata==2025.1
-urllib3==2.5.0
+urllib3==2.6.3
 uvicorn==0.34.0
 wcwidth==0.2.13
-werkzeug==3.1.3
-wheel==0.45.1
+werkzeug==3.1.6
+wheel==0.46.2
 wrapt==1.17.2
 zipp==3.21.0
 
