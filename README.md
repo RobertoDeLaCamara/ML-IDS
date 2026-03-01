@@ -227,7 +227,7 @@ https://www.unb.ca/cic/datasets/ids-2017.html
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/RobertoDeLaCamara/ML-IDS.git
    cd ML-IDS
    ```
 
