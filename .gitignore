@@ -222,3 +222,6 @@ Cargo.lock
 #.idea/
 clean_requirements.py
 notebooks/feature_importance.json
+
+# Large dataset files
+data/CIC-IDS2017/Data.csv
