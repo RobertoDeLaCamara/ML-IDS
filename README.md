@@ -95,15 +95,12 @@ ML-IDS/
 
 ## Documentation Index
 
-- [Inference Server API](src/inference_server/API.md)
-- **Interactive API Documentation:**
+- **Interactive API Documentation** (when server is running):
   - [Swagger UI](http://localhost:8000/docs) - Interactive API explorer
   - [ReDoc](http://localhost:8000/redoc) - Alternative documentation UI
   - [OpenAPI JSON](http://localhost:8000/openapi.json) - OpenAPI 3.0 specification (JSON)
   - [OpenAPI YAML](http://localhost:8000/openapi.yaml) - OpenAPI 3.0 specification (YAML)
 - [Inference Server OpenAPI Spec](src/inference_server/openapi.yaml)
-- [Model Details](notebooks/MODEL_DETAILS.md)
-- [CIC-IDS2017 Dataset Details](data/CIC-IDS2017/DATASET_DETAILS.md)
 
 ---
 
