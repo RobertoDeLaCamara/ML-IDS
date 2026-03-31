@@ -74,11 +74,12 @@ pipeline {
             steps {
                 echo 'Running SonarQube analysis...'
                 sh """
-                    SONAR_TMP=\${JENKINS_HOME}/sonar-tmp-\${BUILD_NUMBER}
+                    AGENT_ID=\$(cat /proc/self/cgroup | grep -oP '(?<=docker/)[a-f0-9]{64}' | head -1 || hostname)
+                    AGENT_VOL_HOST=\$(docker inspect \${AGENT_ID} --format '{{range .Mounts}}{{if eq .Destination "/home/jenkins/agent"}}{{.Source}}{{end}}{{end}}')
+                    SONAR_TMP=/home/jenkins/agent/sonar-tmp-\${BUILD_NUMBER}
                     cp -r \${WORKSPACE} \${SONAR_TMP}
-                    HOST_SONAR_TMP=\$(echo \${SONAR_TMP} | sed 's|/var/jenkins_home|/home/roberto/jenkins_home|')
                     docker run --rm \
-                        -v "\${HOST_SONAR_TMP}:/usr/src" \
+                        -v "\${AGENT_VOL_HOST}/sonar-tmp-\${BUILD_NUMBER}:/usr/src" \
                         sonarsource/sonar-scanner-cli \
                         -Dsonar.projectKey=ml-ids \
                         -Dsonar.sources=src \
