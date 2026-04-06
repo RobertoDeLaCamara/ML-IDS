@@ -4,14 +4,14 @@
 
 - Docker + Docker Compose
 - Python 3.10+ (for local dev without Docker)
-- MLflow tracking server + S3-compatible storage (MinIO)
+- ML Tracking tracking server + S3-compatible storage (S3-compatible storage)
 - PostgreSQL or SQLite (auto-fallback)
 
 ## Setup
 
 ```bash
 cp .env.example .env
-# Edit .env: MLFLOW_TRACKING_URI, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+# Edit .env: ML Tracking_TRACKING_URI, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
 #            ML_IDS_API_KEYS, DATABASE_URL
 
 docker-compose up -d
@@ -25,7 +25,7 @@ curl http://localhost:8000/health
 # {"status":"healthy","model_initialized":true,...}
 
 curl http://localhost:8000/metrics
-# Prometheus text format
+# Monitoring Service text format
 
 curl -X POST http://localhost:8000/predict \
   -H "X-API-Key: <key>" \
@@ -56,15 +56,15 @@ Tests use SQLite (`sqlite+aiosqlite:////app/logs/mlids.db`) by default — no Po
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `MLFLOW_TRACKING_URI` | Yes | — | MLflow server URL |
-| `MLFLOW_MODEL_NAME` | No | `ml-ids-model` | Registered model name |
+| `ML Tracking_TRACKING_URI` | Yes | — | ML Tracking server URL |
+| `ML Tracking_MODEL_NAME` | No | `ml-ids-model` | Registered model name |
 | `MODEL_CACHE_DIR` | No | `/app/models` | Local joblib cache directory |
 | `DATABASE_URL` | No | SQLite | PostgreSQL or SQLite URL |
 | `ML_IDS_API_KEYS` | No | — | Comma-separated API keys |
 | `ML_IDS_AUTH_ENABLED` | No | `true` | Set `false` to disable auth |
-| `AWS_ACCESS_KEY_ID` | Yes* | — | S3/MinIO access key (*if using MLflow S3) |
-| `AWS_SECRET_ACCESS_KEY` | Yes* | — | S3/MinIO secret key |
-| `AWS_S3_ENDPOINT_URL` | No | — | MinIO endpoint (if not AWS S3) |
+| `AWS_ACCESS_KEY_ID` | Yes* | — | S3/S3-compatible storage access key (*if using ML Tracking S3) |
+| `AWS_SECRET_ACCESS_KEY` | Yes* | — | S3/S3-compatible storage secret key |
+| `AWS_S3_ENDPOINT_URL` | No | — | S3-compatible storage endpoint (if not AWS S3) |
 | `START_CICFLOWMETER` | No | `false` | Start CICFlowMeter at container start |
 | `CIC_INTERFACE` | No | `eth0` | Network interface for CICFlowMeter |
 
@@ -147,7 +147,7 @@ src/inference_server/
 ├── auth.py                  X-API-Key middleware + WebSocket auth helper
 ├── alert_service.py         Dedup, severity, rule evaluation, incident creation
 ├── notifications.py         SMTP / Slack / webhook dispatch (asyncio.gather)
-├── metrics.py               Prometheus counters / histograms / gauges
+├── metrics.py               Monitoring Service counters / histograms / gauges
 ├── websocket_manager.py     Connection set + broadcast (cleanup on failure)
 ├── models.py                SQLAlchemy ORM: Alert, Incident, Metric,
 │                            NotificationChannel, AlertRule
@@ -172,7 +172,7 @@ docker-compose.yml
 
 ## CI/CD
 
-Jenkins pipeline targets `192.168.1.86:5000` (private registry). SonarQube integration via `sonar-project.properties`. Pipeline stages: lint (flake8 --max-line-length=100) → test (pytest) → build → push → deploy.
+CI/CD pipeline targets `[REGISTRY_IP]:5000` (private registry). Quality Analysis integration via `sonar-project.properties`. Pipeline stages: lint (flake8 --max-line-length=100) → test (pytest) → build → push → deploy.
 
 ## Differences from Cognitive-Intrusion-Detection-System
 
@@ -185,8 +185,8 @@ ML-IDS adds to CIDS without replacing it:
 | `Incident` management | `models.py`, `routers/incidents.py` |
 | Multi-key auth (`ML_IDS_API_KEYS`) | `auth.py` |
 | Feature validation (NaN/clamp) | `schemas.py` |
-| MLflow + local joblib fallback | `main.py` ModelManager |
-| Full Prometheus metrics suite | `metrics.py` |
+| ML Tracking + local joblib fallback | `main.py` ModelManager |
+| Full Monitoring Service metrics suite | `metrics.py` |
 | 40 additional tests | `tests/` |
 
 The core `/predict` → `AlertService` → PostgreSQL flow is identical between the two projects.

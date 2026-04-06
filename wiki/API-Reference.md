@@ -16,13 +16,13 @@ Public paths (no auth): `/health`, `/docs`, `/redoc`, `/openapi.json`, `/`, `/da
 {
   "status": "healthy",          // "healthy" | "degraded" | "unhealthy"
   "model_initialized": true,
-  "model_source": "mlflow",     // "mlflow" | "cache" | null
+  "model_source": "ML Tracking",     // "ML Tracking" | "cache" | null
   "database": "connected",
   "uptime_seconds": 3600
 }
 ```
 
-`degraded`: model loaded from cache fallback (MLflow unreachable at startup).
+`degraded`: model loaded from cache fallback (ML Tracking unreachable at startup).
 `unhealthy`: model not loaded — `/predict` returns 503.
 
 ---
@@ -98,7 +98,7 @@ GET /api/alerts?severity=high&hours=24&attack_type=DDoS&limit=100&offset=0
       "id": 1,
       "timestamp": "2026-03-30T12:00:00Z",
       "src_ip": "10.0.0.1",
-      "dst_ip": "192.168.1.1",
+      "dst_ip": "[INTERNAL_IP]",
       "src_port": 54321,
       "dst_port": 80,
       "protocol": "TCP",
@@ -275,11 +275,11 @@ Connection drops are cleaned up automatically — disconnected clients are remov
 
 ---
 
-## Prometheus Metrics
+## Monitoring Service Metrics
 
 ### GET /metrics
 
-Returns all metrics in Prometheus text format. No auth required.
+Returns all metrics in Monitoring Service text format. No auth required.
 
 ```
 # HELP mlids_predictions_total Total predictions by result

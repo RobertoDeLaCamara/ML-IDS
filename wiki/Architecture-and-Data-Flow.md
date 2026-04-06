@@ -17,7 +17,7 @@
 │  (bypassed for /health, /docs, /metrics, /dashboard, /)         │
 │                                                                 │
 │  ModelManager.predict(features)                                 │
-│  ├─ Primary: mlflow.sklearn.load_model(MLFLOW_MODEL_NAME)       │
+│  ├─ Primary: ML Tracking.sklearn.load_model(ML Tracking_MODEL_NAME)       │
 │  │   └─ Save copy to MODEL_CACHE_DIR/model_cache.joblib         │
 │  └─ Fallback: joblib.load(MODEL_CACHE_DIR/model_cache.joblib)  │
 │                                                                 │
@@ -54,7 +54,7 @@
                │                   │
                ▼                   ▼
          PostgreSQL/SQLite    WebSocket clients
-         + Prometheus         ws://.../api/dashboard/live
+         + Monitoring Service         ws://.../api/dashboard/live
          metrics update       (auth: ?api_key=<key>)
 ```
 
@@ -62,10 +62,10 @@
 
 ```
 Startup → load_model():
-  1. Try: mlflow.sklearn.load_model(MLFLOW_MODEL_NAME)
+  1. Try: ML Tracking.sklearn.load_model(ML Tracking_MODEL_NAME)
      → On success: save to MODEL_CACHE_DIR/model_cache.joblib
      → Set model_initialized = True
-  2. If MLflow fails: joblib.load(MODEL_CACHE_DIR/model_cache.joblib)
+  2. If ML Tracking fails: joblib.load(MODEL_CACHE_DIR/model_cache.joblib)
      → Set model_initialized = True, log warning
   3. If both fail: model_initialized = False
      → /health returns degraded/unhealthy
@@ -92,7 +92,7 @@ Request arrives
           (constant-time comparison for each key)
 ```
 
-## Prometheus Metrics
+## Monitoring Service Metrics
 
 ```python
 # src/inference_server/metrics.py
@@ -105,7 +105,7 @@ mlids_model_loaded               Gauge    (0 or 1)
 mlids_active_websocket_connections Gauge  (count of connected clients)
 ```
 
-Available at `GET /metrics` in Prometheus text format.
+Available at `GET /metrics` in Monitoring Service text format.
 
 ## Database Schema
 

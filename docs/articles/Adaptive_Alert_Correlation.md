@@ -73,7 +73,7 @@ Each rule specifies one action:
 
 **create_incident**: A new Incident row is created with the current alert linked. Subsequent related alerts can be linked to the same incident via the API. This turns a stream of alerts into a structured investigation record.
 
-**escalate_severity**: The current alert's severity is bumped one level (medium → high, high → critical). This does not affect historical alerts or severity statistics — only the current alert object. The escalated severity propagates to Prometheus metrics and WebSocket broadcasts.
+**escalate_severity**: The current alert's severity is bumped one level (medium → high, high → critical). This does not affect historical alerts or severity statistics — only the current alert object. The escalated severity propagates to Monitoring Service metrics and WebSocket broadcasts.
 
 **notify**: Triggers `send_notifications(alert)` immediately, dispatching to all enabled notification channels. Useful when a rule condition represents a threshold that warrants immediate human attention regardless of normal notification timing.
 

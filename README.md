@@ -13,14 +13,14 @@ The ML-IDS (Machine Learning-based Intrusion Detection System) is a comprehensiv
 - **REST API**: Inference server with prediction and alert endpoints
 - **API Key Authentication**: Header-based auth middleware with public path bypass and WebSocket support
 - **Feature Validation**: NaN/Inf replacement, non-negative clamping, flag range validation with warnings
-- **Model Fallback**: Local model caching with automatic fallback when MLflow is unreachable
-- **Prometheus Metrics**: Prediction counters, latency histograms, model and WebSocket gauges at `/metrics`
+- **Model Fallback**: Local model caching with automatic fallback when ML Tracking is unreachable
+- **Monitoring Service Metrics**: Prediction counters, latency histograms, model and WebSocket gauges at `/metrics`
 - **PostgreSQL Database**: Persistent storage for alerts, incidents, and metrics
 - **Alert Management**: Intelligent alerting with severity classification and deduplication
 - **Notification System**: Email (SMTP), Slack, and webhook notifications
 - **Real-time Dashboard**: WebSocket-powered monitoring interface with live updates
 - **Docker Deployment**: Complete system containerization with PostgreSQL
-- **MLflow Integration**: Experiment tracking and model versioning
+- **ML Tracking Integration**: Experiment tracking and model versioning
 - **Automatic Feature Extraction**: 78 network flow features extracted automatically
 
 
@@ -31,7 +31,7 @@ The ML-IDS (Machine Learning-based Intrusion Detection System) is a comprehensiv
 ```
 ML-IDS/
 │
-├── Jenkinsfile                  # CI/CD pipeline configuration
+├── CI/CDfile                  # CI/CD pipeline configuration
 ├── LICENSE                      # License information
 ├── README.md                    # Project overview and instructions
 ├── TEST_RESULTS.md              # Phase 1 test results
@@ -63,7 +63,7 @@ ML-IDS/
 │       ├── Dockerfile           # Docker image definition
 │       ├── main.py              # Main FastAPI application
 │       ├── auth.py              # API Key authentication middleware
-│       ├── metrics.py           # Prometheus metrics definitions
+│       ├── metrics.py           # Monitoring Service metrics definitions
 │       ├── schemas.py           # Pydantic models with validation
 │       ├── models.py            # SQLAlchemy database models
 │       ├── database.py          # Database connection management
@@ -135,8 +135,8 @@ The system automatically extracts the following categories of features:
 The system can be configured through environment variables:
 
 - `CIC_INTERFACE`: Network interface for capture (default: `eth0`)
-- `MLFLOW_TRACKING_URI`: MLflow server URI
-- `MLFLOW_S3_ENDPOINT_URL`: S3 endpoint for model storage
+- `ML Tracking_TRACKING_URI`: ML Tracking server URI
+- `ML Tracking_S3_ENDPOINT_URL`: S3 endpoint for model storage
 - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: AWS credentials for S3
 
 ---
@@ -176,8 +176,8 @@ https://www.unb.ca/cic/datasets/ids-2017.html
      - Accuracy, classification report, confusion matrix, and ROC curves for each class.
      - Feature importance analysis (both built-in and permutation-based).
      - Analysis of misclassified samples, especially for critical classes.
-  5. **Experiment Tracking:** Uses MLflow for logging metrics, artifacts (classification reports, feature importances), and model versions.
-  6. **Model Deployment:** Models are registered and can be loaded for inference using MLflow.
+  5. **Experiment Tracking:** Uses ML Tracking for logging metrics, artifacts (classification reports, feature importances), and model versions.
+  6. **Model Deployment:** Models are registered and can be loaded for inference using ML Tracking.
 
 ### Model Deployment
 
@@ -200,14 +200,14 @@ https://www.unb.ca/cic/datasets/ids-2017.html
 
 - **Notes:**
   - Database tests use SQLite (aiosqlite) as a local fallback when PostgreSQL is unavailable
-  - Inference server tests mock MLflow model loading for offline execution
+  - Inference server tests mock ML Tracking model loading for offline execution
   - All 44 tests pass without external service dependencies
 
 ---
 
 ## Experiment Tracking
 
-- **MLflow:** All experiments, metrics, and models are tracked and versioned using MLflow.
+- **ML Tracking:** All experiments, metrics, and models are tracked and versioned using ML Tracking.
 
 ---
 
@@ -216,7 +216,7 @@ https://www.unb.ca/cic/datasets/ids-2017.html
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- Access to an MLflow server with registered model
+- Access to an ML Tracking server with registered model
 - Network interface configured for packet capture
 - Administrator privileges for network packet capture
 
@@ -249,8 +249,8 @@ docker run -d \
   --network host \
   --cap-add=NET_RAW \
   --cap-add=NET_ADMIN \
-  -e MLFLOW_TRACKING_URI=http://your-mlflow-server:5000 \
-  -e MLFLOW_S3_ENDPOINT_URL=http://your-s3-endpoint:9000 \
+  -e ML Tracking_TRACKING_URI=http://your-ML Tracking-server:5000 \
+  -e ML Tracking_S3_ENDPOINT_URL=http://your-s3-endpoint:9000 \
   -e AWS_ACCESS_KEY_ID=your-access-key \
   -e AWS_SECRET_ACCESS_KEY=your-secret-key \
   -e CIC_INTERFACE=eth0 \
@@ -296,8 +296,8 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql+asyncpg://mlids:mlids_password@localhost:5432/mlids
-      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+      - ML Tracking_TRACKING_URI=${ML Tracking_TRACKING_URI}
+      - ML Tracking_S3_ENDPOINT_URL=${ML Tracking_S3_ENDPOINT_URL}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - CIC_INTERFACE=eth0
@@ -319,7 +319,7 @@ volumes:
 1. Copy `.env.example` to `.env` and configure:
    ```bash
    cp .env.example .env
-   # Edit .env with your MLflow and notification settings
+   # Edit .env with your ML Tracking and notification settings
    ```
 
 2. Start services:
@@ -354,7 +354,7 @@ volumes:
    {
      "status": "healthy",
      "model_initialized": true,
-     "model_source": "mlflow",
+     "model_source": "ML Tracking",
      "model_loaded_at": "2026-02-15T10:00:00",
      "database": {
        "database": "healthy",
@@ -373,7 +373,7 @@ volumes:
    curl -X POST http://localhost:8000/predict \
      -H "Content-Type: application/json" \
      -H "X-API-Key: your-api-key-here" \
-     -d '{"flow_duration": 1000.0, "tot_fwd_pkts": 100, "src_ip": "192.168.1.100"}'
+     -d '{"flow_duration": 1000.0, "tot_fwd_pkts": 100, "src_ip": "[CLIENT_IP]"}'
    ```
 
 5. **View dashboard**:
@@ -392,12 +392,12 @@ volumes:
 |----------|-------------|---------------|
 | **Database** | | |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://mlids:mlids_password@localhost:5432/mlids` |
-| **MLflow & Model** | | |
-| `MLFLOW_TRACKING_URI` | MLflow server URI | Required |
-| `MLFLOW_S3_ENDPOINT_URL` | S3 endpoint for models | Required |
+| **ML Tracking & Model** | | |
+| `ML Tracking_TRACKING_URI` | ML Tracking server URI | Required |
+| `ML Tracking_S3_ENDPOINT_URL` | S3 endpoint for models | Required |
 | `AWS_ACCESS_KEY_ID` | AWS access key | Required |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key | Required |
-| `MLFLOW_MODEL_NAME` | Model name in MLflow | `models:/ML_IDS_Model_v1/latest` |
+| `ML Tracking_MODEL_NAME` | Model name in ML Tracking | `models:/ML_IDS_Model_v1/latest` |
 | **Network Capture** | | |
 | `CIC_INTERFACE` | Network interface for capture | `eth0` |
 | `START_CICFLOWMETER` | Enable CICFlowMeter | `true` |
@@ -435,12 +435,12 @@ volumes:
    - Ensure container has `NET_RAW` and `NET_ADMIN` capabilities
    - Verify that the specified network interface exists
 
-2. **MLflow connection error**:
+2. **ML Tracking connection error**:
    - Verify environment variables are configured correctly
-   - Check network connectivity to MLflow server
+   - Check network connectivity to ML Tracking server
 
 3. **Model not initialized**:
-   - Verify model is registered in MLflow
+   - Verify model is registered in ML Tracking
    - Check AWS/S3 credentials
 
 ---
@@ -460,7 +460,7 @@ X-API-Key: your-api-key
 {
   "flow_duration": 1000.0,
   "tot_fwd_pkts": 100,
-  "src_ip": "192.168.1.100"
+  "src_ip": "[CLIENT_IP]"
   # ... other 75 features
 }
 ```
@@ -478,14 +478,14 @@ Input features are automatically validated:
 GET /health
 ```
 
-Returns service status, model initialization state, model source (mlflow/cache), and database health.
+Returns service status, model initialization state, model source (ML Tracking/cache), and database health.
 
-#### `/metrics` - Prometheus Metrics
+#### `/metrics` - Monitoring Service Metrics
 ```bash
 GET /metrics
 ```
 
-Returns Prometheus-compatible metrics including:
+Returns Monitoring Service-compatible metrics including:
 - `mlids_predictions_total` (counter, labels: result)
 - `mlids_alerts_created_total` (counter, labels: severity)
 - `mlids_prediction_latency_seconds` (histogram)
@@ -542,7 +542,7 @@ POST /api/incidents
 Content-Type: application/json
 
 {
-  "title": "Multiple attacks from 192.168.1.100",
+  "title": "Multiple attacks from [CLIENT_IP]",
   "description": "Investigating coordinated attack",
   "severity": "high",
   "assigned_to": "security-team@example.com"
@@ -753,8 +753,8 @@ For production environments, Phase 1 provides:
 Phase 2 (Current):
 - **API Key Authentication**: Header-based auth with public path bypass
 - **Feature Validation**: NaN/Inf/range validation with warnings
-- **Model Fallback**: Local caching for MLflow unavailability
-- **Prometheus Metrics**: Counters, histograms, and gauges at `/metrics`
+- **Model Fallback**: Local caching for ML Tracking unavailability
+- **Monitoring Service Metrics**: Counters, histograms, and gauges at `/metrics`
 
 Phase 3 (Future):
 - **Rate Limiting**: Per-endpoint rate limits
@@ -779,8 +779,8 @@ This repository provides a complete pipeline for developing, evaluating, and dep
 **Phase 2** (Hardening):
 - ✅ API Key authentication middleware (X-API-Key header + WebSocket query param)
 - ✅ Feature validation (NaN/Inf replacement, non-negative clamping, flag range enforcement)
-- ✅ Model fallback with local joblib cache when MLflow is unreachable
-- ✅ Prometheus metrics endpoint (`/metrics`) with prediction, alert, and connection gauges
+- ✅ Model fallback with local joblib cache when ML Tracking is unreachable
+- ✅ Monitoring Service metrics endpoint (`/metrics`) with prediction, alert, and connection gauges
 
 The system is structured for reproducibility, extensibility, and ease of deployment in production environments, with complete CICFlowMeter integration for real-time analysis.
 

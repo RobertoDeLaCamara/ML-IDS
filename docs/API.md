@@ -21,7 +21,7 @@ The ML-IDS inference server provides a comprehensive REST API for network intrus
 - **FastAPI**: Async web framework
 - **PostgreSQL**: Alert and incident persistence
 - **WebSocket**: Real-time dashboard updates
-- **Prometheus**: Metrics and monitoring
+- **Monitoring Service**: Metrics and monitoring
 - **CICFlowMeter**: Automatic network flow feature extraction
 
 ---
@@ -37,7 +37,7 @@ Make predictions with the ML model and automatically create alerts for detected 
 {
   "flow_duration": 1000.0,
   "tot_fwd_pkts": 100,
-  "src_ip": "192.168.1.100",
+  "src_ip": "[CLIENT_IP]",
   // ... 75 other network flow features
 }
 ```
@@ -96,7 +96,7 @@ Root endpoint with server information.
 
 ### GET /metrics
 
-Prometheus metrics endpoint.
+Monitoring Service metrics endpoint.
 
 **Metrics:**
 - `ml_ids_detected_attacks_total{attack_type, src_ip}` - Counter of detected attacks
@@ -132,7 +132,7 @@ GET /api/alerts?severity=high&hours=24&limit=50
     "id": 1,
     "attack_type": "DDoS",
     "severity": "high",
-    "src_ip": "192.168.1.100",
+    "src_ip": "[CLIENT_IP]",
     "dst_ip": "10.0.0.50",
     "timestamp": "2025-12-02T20:00:00",
     "prediction_score": null,
@@ -153,7 +153,7 @@ Get specific alert details.
   "id": 1,
   "attack_type": "DDoS",
   "severity": "high",
-  "src_ip": "192.168.1.100",
+  "src_ip": "[CLIENT_IP]",
   "dst_ip": "10.0.0.50",
   "timestamp": "2025-12-02T20:00:00",
   "prediction_score": null,
@@ -213,7 +213,7 @@ List incidents with filtering.
 [
   {
     "id": 1,
-    "title": "Multiple DDoS attacks from 192.168.1.100",
+    "title": "Multiple DDoS attacks from [CLIENT_IP]",
     "description": "Coordinated attack detected",
     "status": "open",
     "severity": "high",
@@ -335,7 +335,7 @@ Get top attacking source IPs.
 {
   "attackers": [
     {
-      "src_ip": "192.168.1.100",
+      "src_ip": "[CLIENT_IP]",
       "attack_count": 25,
       "max_severity": "high"
     }
@@ -378,7 +378,7 @@ Get most recent alerts for feed.
       "id": 1,
       "attack_type": "DDoS",
       "severity": "high",
-      "src_ip": "192.168.1.100",
+      "src_ip": "[CLIENT_IP]",
       "timestamp": "2025-12-02T20:00:00",
       "acknowledged": false
     }
@@ -492,12 +492,12 @@ Prevents alert fatigue by deduplicating similar alerts:
 **Database:**
 - `DATABASE_URL` - PostgreSQL connection string
 
-**MLflow & Model:**
-- `MLFLOW_TRACKING_URI` - MLflow server URI
-- `MLFLOW_S3_ENDPOINT_URL` - S3 endpoint
+**ML Tracking & Model:**
+- `ML Tracking_TRACKING_URI` - ML Tracking server URI
+- `ML Tracking_S3_ENDPOINT_URL` - S3 endpoint
 - `AWS_ACCESS_KEY_ID` - AWS credentials
 - `AWS_SECRET_ACCESS_KEY` - AWS credentials
-- `MLFLOW_MODEL_NAME` - Model name (default: `models:/ML_IDS_Model_v1/latest`)
+- `ML Tracking_MODEL_NAME` - Model name (default: `models:/ML_IDS_Model_v1/latest`)
 
 **Network Capture:**
 - `CIC_INTERFACE` - Network interface (default: `eth0`)
@@ -596,7 +596,7 @@ All alerts and incidents persisted to PostgreSQL for:
 # Test prediction
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"flow_duration": 1000.0, "tot_fwd_pkts": 100, "src_ip": "192.168.1.100"}'
+  -d '{"flow_duration": 1000.0, "tot_fwd_pkts": 100, "src_ip": "[CLIENT_IP]"}'
 
 # List alerts
 curl http://localhost:8000/api/alerts?limit=10
