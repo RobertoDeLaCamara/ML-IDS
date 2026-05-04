@@ -33,7 +33,7 @@ Public paths (no auth): `/health`, `/docs`, `/redoc`, `/openapi.json`, `/`, `/da
 
 Classify a network flow. Returns attack type and triggers alert pipeline if attack detected.
 
-**Request** (78 features, all float):
+**Request** (76 CICFlowMeter flow features, all float — names match `unified_metadata.json["feature_names"]`):
 
 ```json
 {
@@ -55,7 +55,7 @@ Invalid values are coerced silently:
 ```json
 {
   "prediction": 0,
-  "attack_type": "BENIGN",
+  "attack_type": "Benign",
   "confidence": 0.97,
   "validation_warnings": [],
   "alert_created": false,
@@ -63,8 +63,8 @@ Invalid values are coerced silently:
 }
 ```
 
-`prediction`: integer class label (0 = BENIGN, 1–14 = attack classes).
-`confidence`: probability of the predicted class from the RF/Stacking ensemble.
+`prediction`: integer class label, UNSW-NB15 schema — `0=Benign, 1=Analysis, 2=Backdoor, 3=DoS, 4=Exploits, 5=Fuzzers, 6=Generic, 7=Reconnaissance, 8=Shellcode, 9=Worms`.
+`confidence`: softmax probability of the predicted class from the FT-Transformer model.
 `validation_warnings`: list of strings describing any coerced input values.
 `alert_created`: true if an alert row was inserted (prediction != 0 and not duplicate).
 

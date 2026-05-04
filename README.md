@@ -4,24 +4,24 @@ Machine Learning-based Intrusion Detection System
 
 ## Purpose
 
-The ML-IDS (Machine Learning-based Intrusion Detection System) is a comprehensive network intrusion detection system that uses machine learning techniques to identify malicious traffic in real-time. The system integrates CICFlowMeter for network flow feature extraction and a machine learning model trained on the CIC-IDS2017 dataset for traffic classification.
+The ML-IDS (Machine Learning-based Intrusion Detection System) is a comprehensive network intrusion detection system that uses machine learning techniques to identify malicious traffic in real-time. The system integrates CICFlowMeter for network flow feature extraction and a unified FT-Transformer model — shared with the cnds project — trained on the CIC redistribution of UNSW-NB15 for traffic classification.
 
 ### Key Features
 
 - **Real-time Detection**: Continuous network traffic analysis using CICFlowMeter
-- **Advanced ML Model**: Uses Random Forest and Stacking Classifier for classification
+- **Unified FT-Transformer model**: Optuna-tuned tabular Transformer (~2.4M params), F1 macro 0.6197 on the held-out test split, shared with cnds via the MLflow registry. Sits alongside legacy XGBoost and Random Forest baselines that remain available for sanity comparison. See [`docs/UNIFIED_MODEL.md`](docs/UNIFIED_MODEL.md) and [`docs/UNIFIED_MODEL_ARCHITECTURE.md`](docs/UNIFIED_MODEL_ARCHITECTURE.md).
 - **REST API**: Inference server with prediction and alert endpoints
 - **API Key Authentication**: Header-based auth middleware with public path bypass and WebSocket support
 - **Feature Validation**: NaN/Inf replacement, non-negative clamping, flag range validation with warnings
-- **Model Fallback**: Local model caching with automatic fallback when ML Tracking is unreachable
+- **Model Fallback**: Local model caching with automatic fallback when MLflow is unreachable
 - **Monitoring Service Metrics**: Prediction counters, latency histograms, model and WebSocket gauges at `/metrics`
 - **PostgreSQL Database**: Persistent storage for alerts, incidents, and metrics
 - **Alert Management**: Intelligent alerting with severity classification and deduplication
 - **Notification System**: Email (SMTP), Slack, and webhook notifications
 - **Real-time Dashboard**: WebSocket-powered monitoring interface with live updates
 - **Docker Deployment**: Complete system containerization with PostgreSQL
-- **ML Tracking Integration**: Experiment tracking and model versioning
-- **Automatic Feature Extraction**: 78 network flow features extracted automatically
+- **MLflow Integration**: Experiment tracking and model versioning; unified model registered as `ml-ids-unified-ft-transformer/<version>`
+- **Automatic Feature Extraction**: 76 CICFlowMeter network flow features extracted automatically
 
 
 ---
@@ -108,7 +108,7 @@ ML-IDS/
 
 ### What is CICFlowMeter?
 
-CICFlowMeter is a tool developed by the Canadian Institute for Cybersecurity (CIC) that extracts network flow features in real-time. It is the standard tool used to generate the CIC-IDS2017 dataset and allows the extraction of 78 statistical features from each network flow.
+CICFlowMeter is a tool developed by the Canadian Institute for Cybersecurity (CIC) that extracts network flow features in real-time. It is the standard tool used to generate CIC's IDS datasets; ML-IDS consumes the 76 numeric statistical features per flow that the unified FT-Transformer was trained on (the 78-column raw schema also includes the Flow ID and Label columns).
 
 ### Extracted Features
 
@@ -125,9 +125,9 @@ The system automatically extracts the following categories of features:
 ### Workflow
 
 1. **Traffic Capture**: CICFlowMeter captures network packets from the specified interface
-2. **Feature Extraction**: 78 statistical features are extracted from each flow
+2. **Feature Extraction**: 76 statistical features are extracted from each flow
 3. **API Submission**: Features are automatically sent to the `/predict` endpoint
-4. **Classification**: The ML model classifies the flow as benign or specific attack type
+4. **Classification**: The unified FT-Transformer classifies the flow into one of 10 UNSW-NB15 classes (Benign, Analysis, Backdoor, DoS, Exploits, Fuzzers, Generic, Reconnaissance, Shellcode, Worms)
 5. **Alert Logging**: Malicious flows are logged for further analysis
 
 ### Configuration
@@ -135,53 +135,58 @@ The system automatically extracts the following categories of features:
 The system can be configured through environment variables:
 
 - `CIC_INTERFACE`: Network interface for capture (default: `eth0`)
-- `ML Tracking_TRACKING_URI`: ML Tracking server URI
-- `ML Tracking_S3_ENDPOINT_URL`: S3 endpoint for model storage
-- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: AWS credentials for S3
+- `MLFLOW_TRACKING_URI`: MLflow server URI (production: `http://192.168.1.147:5050`)
+- `MLFLOW_S3_ENDPOINT_URL`: S3-compatible endpoint for model storage (production: `http://192.168.1.189:9000` MinIO)
+- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: credentials for the S3-compatible artifact store
 
 ---
 
 ## Datasets Used
 
-### CIC-IDS2017
+### CIC redistribution of UNSW-NB15
 
-- **Location:** `data/CIC-IDS2017/`
+- **Location:** `data/CIC-IDS2017/` (directory name kept for historical reasons; the labels and class space are the UNSW-NB15 schema, see `readme.txt` inside the folder).
 - **Files:**
-  - `Data.csv`: Contains the network traffic features for each sample.
-  - `Label.csv`: Contains the corresponding labels (attack types or benign) for each sample.
-  - `readme.txt` and `source.txt`: Provide additional context and source information about the dataset.
-- **Description:** The CIC-IDS2017 dataset is a widely used benchmark for intrusion detection research, containing realistic network traffic with labeled attack and benign samples.
+  - `Data.csv`: 76 CICFlowMeter network traffic features per sample, ~447,915 rows.
+  - `Label.csv`: integer labels (0–9) per sample.
+  - `readme.txt` and `source.txt`: dataset description and CIC source information.
+- **Description:** UNSW-NB15 redistribution by CIC. 10 classes — Benign (~80 %) plus 9 attack categories (Analysis, Backdoor, DoS, Exploits, Fuzzers, Generic, Reconnaissance, Shellcode, Worms) with severe class imbalance.
 
 #### Dataset Usage Conditions
-This repository includes the CICIDS2017 dataset provided by the Canadian Institute for Cybersecurity (CIC) of the University of New Brunswick.
+This repository includes the CIC redistribution of UNSW-NB15 provided by the Canadian Institute for Cybersecurity (CIC) of the University of New Brunswick.
 The dataset is intended for academic and research purposes only.
 Use of the dataset is subject to the terms and conditions of the CIC. Citation of the original source is required when using this data.
 Permission for public or commercial redistribution is not guaranteed. It is recommended to review the official conditions at:
-https://www.unb.ca/cic/datasets/ids-2017.html
+https://www.unb.ca/cic/datasets/cic-unsw-nb15.html
 
 ---
 
 ## Machine Learning Models
 
-### Model Training and Evaluation
+### Production model — Unified FT-Transformer (Optuna-tuned)
 
-- **Notebooks:** The main workflow is in `notebooks/model_training.ipynb`.
+- **Notebooks:**
+  - `notebooks/build_unified_notebook.py` — generates the default-config unified training notebook.
+  - `notebooks/ft_transformer_optuna_sweep.py` — 25-trial Optuna sweep + final retrain that produces the production checkpoint.
+  - `notebooks/log_to_mlflow.py` — retroactive logging helper.
 - **Workflow:**
-  1. **Data Loading:** Reads features from `Data.csv` and labels from `Label.csv`.
-  2. **Train/Test Split:** Splits the data into training and testing sets (80/20 split, stratified).
-  3. **Modeling:**
-     - **Random Forest Classifier:** Trained with class balancing and custom class weights to address class imbalance, especially for underrepresented classes.
-     - **Stacking Classifier:** Combines Random Forest and Logistic Regression as base estimators, with Logistic Regression as the meta-classifier, wrapped in a pipeline with feature scaling.
-  4. **Evaluation:**
-     - Accuracy, classification report, confusion matrix, and ROC curves for each class.
-     - Feature importance analysis (both built-in and permutation-based).
-     - Analysis of misclassified samples, especially for critical classes.
-  5. **Experiment Tracking:** Uses ML Tracking for logging metrics, artifacts (classification reports, feature importances), and model versions.
-  6. **Model Deployment:** Models are registered and can be loaded for inference using ML Tracking.
+  1. **Data Loading:** Reads features from `Data.csv` (76 CICFlowMeter features) and integer labels from `Label.csv`.
+  2. **Stratified 70 / 15 / 15 split** with `random_state=42`.
+  3. **Preprocessing:** `nan_to_num` (nan → 0, inf → ±1e9); `StandardScaler` fitted on train only, persisted to `unified_scaler.pkl`.
+  4. **Modeling:**
+     - **FT-Transformer (production):** per-feature affine tokenizer → 3 Pre-LN encoder blocks → linear head; ~2.4M params; tuned via Optuna (TPESampler + MedianPruner). `class_weight='sqrt_inverse'`, AdamW + CosineAnnealingLR, bf16 autocast on Blackwell.
+     - **XGBoost baseline:** GPU `hist`, `n_estimators=400`, `max_depth=8`, `early_stopping_rounds=20` — kept as sanity reference.
+     - **Random Forest / Stacking (legacy):** retained in older notebooks for comparison; not deployed.
+  5. **Evaluation:** F1 macro / weighted, per-class precision-recall, confusion matrix, classification report.
+  6. **Experiment Tracking:** All runs logged to MLflow under experiment `ml-ids-unified`. Best run is registered as `ml-ids-unified-ft-transformer/<version>` with artifacts on the MinIO S3-compatible store.
+  7. **Smoke test:** `cnds/scripts/smoke_test_ft_unified.py` reproduces the test F1 macro through the production engine path; per-class results are documented in [`docs/UNIFIED_MODEL.md`](docs/UNIFIED_MODEL.md).
+
+See [`docs/UNIFIED_MODEL.md`](docs/UNIFIED_MODEL.md) for the full training recipe and inference contract, and [`docs/UNIFIED_MODEL_ARCHITECTURE.md`](docs/UNIFIED_MODEL_ARCHITECTURE.md) for the architecture diagrams.
 
 ### Model Deployment
 
 - **Inference Server:** Located in `src/inference_server/`, provides an API for model inference.
+- **Shared with cnds:** the same `unified_ft_transformer.pt` artifact powers the supervised engine in the cnds project; both consumers load the model via the MLflow registry.
 
 ---
 

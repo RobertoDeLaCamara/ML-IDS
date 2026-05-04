@@ -36,8 +36,8 @@ curl http://localhost:8000/metrics
 | Component | Technology |
 |-----------|-----------|
 | API | FastAPI + Uvicorn |
-| ML model | sklearn RF + Stacking (CIC-IDS2017, 78 features) |
-| Model registry | ML Tracking + local joblib cache |
+| ML model | FT-Transformer (PyTorch, ~2.4M params, Optuna-tuned) — UNSW-NB15, 76 features. RF / Stacking retained as legacy baselines. |
+| Model registry | MLflow registry `ml-ids-unified-ft-transformer/<latest>` + local checkpoint cache |
 | Database | PostgreSQL or SQLite (aiosqlite) via async SQLAlchemy |
 | Auth | X-API-Key header (multi-key) |
 | Real-time | WebSocket (Starlette) |

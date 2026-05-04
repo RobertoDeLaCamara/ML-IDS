@@ -6,9 +6,9 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │  Network Interface                                              │
 │  CICFlowMeter (NET_RAW + NET_ADMIN capabilities)               │
-│  → 78 flow features per bidirectional flow                      │
+│  → 76 flow features per bidirectional flow                      │
 └────────────────────────────┬────────────────────────────────────┘
-                             │ POST /predict (JSON, 78 features)
+                             │ POST /predict (JSON, 76 features)
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  FastAPI — src/inference_server/main.py :8000                   │
@@ -17,9 +17,10 @@
 │  (bypassed for /health, /docs, /metrics, /dashboard, /)         │
 │                                                                 │
 │  ModelManager.predict(features)                                 │
-│  ├─ Primary: ML Tracking.sklearn.load_model(ML Tracking_MODEL_NAME)       │
-│  │   └─ Save copy to MODEL_CACHE_DIR/model_cache.joblib         │
-│  └─ Fallback: joblib.load(MODEL_CACHE_DIR/model_cache.joblib)  │
+│  ├─ Primary: MLflow.pytorch.load_model(                         │
+│  │           "models:/ml-ids-unified-ft-transformer/<latest>")  │
+│  │   └─ Save copy to MODEL_CACHE_DIR/unified_ft_transformer.pt  │
+│  └─ Fallback: torch.load(MODEL_CACHE_DIR/...)                   │
 │                                                                 │
 │  PredictionRequest validation (schemas.py):                    │
 │  ├─ NaN/Inf → replace with 0.0                                  │
