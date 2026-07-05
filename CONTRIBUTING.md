@@ -43,13 +43,22 @@ All new code should include tests. Aim to maintain or improve coverage.
 
 ## Database Migrations
 
-This project uses Alembic for database migrations:
+This project uses Alembic for database migrations. `alembic.ini` lives in `migrations/`, not the project root:
 ```bash
-alembic revision --autogenerate -m "describe your change"
-alembic upgrade head
+alembic -c migrations/alembic.ini revision --autogenerate -m "describe your change"
+alembic -c migrations/alembic.ini upgrade head
 ```
 
 Always create a migration when modifying SQLAlchemy models.
+
+## Dependency Management
+
+**Never bump individual packages in `requirements.txt`** — the lock file is fragile and past manual bumps broke the build (e.g. `scapy==2.6.2` doesn't exist on PyPI; `fastapi 0.115.x` requires `starlette<0.47`, conflicting with other pins). To update dependencies, regenerate the whole file from a clean venv instead:
+```bash
+python -m venv /tmp/ml-ids-venv
+/tmp/ml-ids-venv/bin/pip install -r requirements.in  # or base deps
+/tmp/ml-ids-venv/bin/pip freeze > requirements.txt
+```
 
 ## Key API Endpoints
 
