@@ -179,6 +179,38 @@ class AlertResponse(BaseModel):
             }
         }
 
+class PaginatedAlertResponse(BaseModel):
+    """Paginated Response model for Alert"""
+    alerts: List[AlertResponse]
+    total: int
+    limit: int
+    offset: int
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "alerts": [
+                    {
+                        "id": 1,
+                        "attack_type": "DDoS",
+                        "severity": "high",
+                        "src_ip": "192.168.1.100",
+                        "dst_ip": "10.0.0.50",
+                        "timestamp": "2025-12-02T20:00:00",
+                        "prediction_score": 0.95,
+                        "acknowledged": False,
+                        "incident_id": None,
+                        "notes": None
+                    }
+                ],
+                "total": 1,
+                "limit": 20,
+                "offset": 0
+            }
+        }
+
+
 
 class AlertUpdate(BaseModel):
     """Request model for updating an alert"""
