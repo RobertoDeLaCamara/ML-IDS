@@ -24,8 +24,8 @@ async def list_alerts(
     attack_type: Optional[str] = Query(None, description="Filter by attack type"),
     acknowledged: Optional[bool] = Query(None, description="Filter by acknowledged status"),
     hours: Optional[int] = Query(24, description="Number of hours to look back"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(20, description="Maximum number of results"),
+    offset: int = Query(0, description="Offset for pagination"),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -33,6 +33,12 @@ async def list_alerts(
     """
     if db is None:
         raise HTTPException(status_code=503, detail="Database not available")
+
+    # Validate pagination parameters
+    if limit < 1 or limit > 100:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be non-negative")
     
     # Build query
     query = select(Alert)

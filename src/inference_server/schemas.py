@@ -1,6 +1,7 @@
 import math
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional
+from datetime import datetime
 
 class PredictionRequest(BaseModel):
     """
@@ -161,7 +162,14 @@ class AlertResponse(BaseModel):
     acknowledged: bool
     incident_id: Optional[int]
     notes: Optional[str]
-    
+
+    @field_validator('timestamp', mode='before')
+    @classmethod
+    def convert_timestamp(cls, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
+
     class Config:
         from_attributes = True
         json_schema_extra = {
