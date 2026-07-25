@@ -117,8 +117,8 @@ List alerts with filtering and pagination.
 - `attack_type` - Filter by attack type
 - `acknowledged` - Filter by acknowledgment status (true/false)
 - `hours` - Time window to query (default: 24)
-- `limit` - Maximum results (default: 100, max: 1000)
-- `offset` - Pagination offset
+- `limit` - Maximum results (default: 20, max: 100)
+- `offset` - Pagination offset (default: 0)
 
 **Example:**
 ```bash
@@ -127,21 +127,36 @@ GET /api/alerts?severity=high&hours=24&limit=50
 
 **Response:**
 ```json
-[
-  {
-    "id": 1,
-    "attack_type": "DDoS",
-    "severity": "high",
-    "src_ip": "[CLIENT_IP]",
-    "dst_ip": "10.0.0.50",
-    "timestamp": "2025-12-02T20:00:00",
-    "prediction_score": null,
-    "acknowledged": false,
-    "incident_id": null,
-    "notes": null
-  }
-]
+{
+  "alerts": [
+    {
+      "id": 1,
+      "attack_type": "DDoS",
+      "severity": "high",
+      "src_ip": "[CLIENT_IP]",
+      "dst_ip": "10.0.0.50",
+      "timestamp": "2025-12-02T20:00:00",
+      "prediction_score": null,
+      "acknowledged": false,
+      "incident_id": null,
+      "notes": null
+    }
+  ],
+  "total": 42,
+  "limit": 20,
+  "offset": 0
+}
 ```
+
+**Response Headers:**
+- `X-Total-Count` - Total number of alerts matching the filters
+- `X-Page-Size` - Requested page size (the `limit` value)
+- `X-Page-Offset` - Current offset
+
+**Response Codes:**
+- `200`: Success
+- `400`: Invalid `limit` (must be 1-100) or `offset` (must be >= 0)
+- `503`: Database not available
 
 ### GET /api/alerts/{alert_id}
 
