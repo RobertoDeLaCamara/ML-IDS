@@ -2,29 +2,30 @@
 API router for alert management endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, desc
+from sqlalchemy import select, and_, or_, desc, func
 from typing import List, Optional
 from datetime import datetime, timedelta
 
 from ..database import get_db
 from ..models import Alert, SeverityLevel
-from ..schemas import AlertResponse, AlertUpdate
+from ..schemas import AlertResponse, AlertUpdate, PaginatedAlertResponse
 from ..alert_service import alert_service
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
 
-@router.get("", response_model=List[AlertResponse])
+@router.get("", response_model=PaginatedAlertResponse)
 async def list_alerts(
+    response: Response,
     severity: Optional[str] = Query(None, description="Filter by severity"),
     src_ip: Optional[str] = Query(None, description="Filter by source IP"),
     attack_type: Optional[str] = Query(None, description="Filter by attack type"),
     acknowledged: Optional[bool] = Query(None, description="Filter by acknowledged status"),
     hours: Optional[int] = Query(24, description="Number of hours to look back"),
-    limit: int = Query(100, le=1000, description="Maximum number of results"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(20, description="Maximum number of results"),
+    offset: int = Query(0, description="Offset for pagination"),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -32,6 +33,12 @@ async def list_alerts(
     """
     if db is None:
         raise HTTPException(status_code=503, detail="Database not available")
+
+    # Validate pagination parameters
+    if limit < 1 or limit > 100:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be non-negative")
     
     # Build query
     query = select(Alert)
@@ -66,14 +73,30 @@ async def list_alerts(
     # Order by timestamp descending (newest first)
     query = query.order_by(desc(Alert.timestamp))
     
+    #Get total count
+    count_query = select(func.count()).select_from(Alert)
+    if conditions:
+        count_query = count_query.where(and_(*conditions))
+    count_result = await db.execute(count_query)
+    total = count_result.scalar()
+
     # Apply pagination
     query = query.limit(limit).offset(offset)
     
     # Execute query
     result = await db.execute(query)
     alerts = result.scalars().all()
-    
-    return alerts
+
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Page-Size"] = str(limit)
+    response.headers["X-Page-Offset"] = str(offset)
+
+    return PaginatedAlertResponse(
+        alerts=alerts,
+        total=total,
+        limit=limit,
+        offset=offset
+    )
 
 
 @router.get("/{alert_id}", response_model=AlertResponse)
