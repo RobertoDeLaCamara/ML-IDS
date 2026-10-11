@@ -238,3 +238,6 @@ notebooks/feature_importance.json
 # Large dataset files
 data/CIC-IDS2017/Data.csv
 CLAUDE.md
+
+# Local SQLite DB, created at runtime by init_db()
+mlids.db
