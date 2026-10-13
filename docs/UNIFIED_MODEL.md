@@ -288,7 +288,7 @@ ckpt   = torch.load(MODELS_DIR / "unified_ft_transformer.pt", map_location=DEVIC
 meta   = json.loads((MODELS_DIR / "unified_metadata.json").read_text())
 
 # Re-instantiate model from saved config — class is now an importable module
-# in cnds: src/cnds/models/ft_transformer.py
+# in cnds: src/models/ft_transformer.py
 from cnds.src.models.ft_transformer import FTTransformer, build_from_checkpoint
 model = build_from_checkpoint(ckpt).to(DEVICE)
 

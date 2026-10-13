@@ -281,8 +281,8 @@ end-to-end rather than encoded as a fixed split path.
 
 | Concept | File | Symbol |
 |---|---|---|
-| Class definition | [`cnds/src/models/ft_transformer.py`](../../cnds/src/models/ft_transformer.py) | `FTTransformer` |
+| Class definition | [`cnds/src/models/ft_transformer.py`](https://github.com/RobertoDeLaCamara/Cognitive-Intrusion-Detection-System/blob/master/src/models/ft_transformer.py) | `FTTransformer` |
 | Optuna sweep | [`notebooks/ft_transformer_optuna_sweep.py`](../notebooks/ft_transformer_optuna_sweep.py) | `objective`, `class FTTransformer` |
-| Inference engine | [`cnds/src/engines/ft_transformer_engine.py`](../../cnds/src/engines/ft_transformer_engine.py) | `FTTransformerEngine.predict` |
-| Smoke test | [`cnds/scripts/smoke_test_ft_unified.py`](../../cnds/scripts/smoke_test_ft_unified.py) | `predict_batch` |
-| Live runbook | [`cnds/doc/UNIFIED_FT_LIVE_RUNBOOK.md`](../../cnds/doc/UNIFIED_FT_LIVE_RUNBOOK.md) | (manual hping3/nmap) |
+| Inference engine | [`cnds/src/engines/ft_transformer_engine.py`](https://github.com/RobertoDeLaCamara/Cognitive-Intrusion-Detection-System/blob/master/src/engines/ft_transformer_engine.py) | `FTTransformerEngine.predict` |
+| Smoke test | [`cnds/scripts/smoke_test_ft_unified.py`](https://github.com/RobertoDeLaCamara/Cognitive-Intrusion-Detection-System/blob/master/scripts/smoke_test_ft_unified.py) | `predict_batch` |
+| Live runbook | [`cnds/doc/UNIFIED_FT_LIVE_RUNBOOK.md`](https://github.com/RobertoDeLaCamara/Cognitive-Intrusion-Detection-System/blob/master/doc/UNIFIED_FT_LIVE_RUNBOOK.md) | (manual hping3/nmap) |

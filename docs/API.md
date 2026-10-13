@@ -10,7 +10,7 @@ Access the API documentation through multiple interfaces:
 - **[ReDoc](http://localhost:8000/redoc)** - Clean, alternative documentation UI  
 - **[OpenAPI JSON](http://localhost:8000/openapi.json)** - Machine-readable JSON specification
 - **[OpenAPI YAML](http://localhost:8000/openapi.yaml)** - Human-readable YAML specification
-- **[YAML File](openapi.yaml)** - Static YAML file in repository
+- **[YAML File](../src/inference_server/openapi.yaml)** - Static YAML file in repository
 
 ## Overview
 
@@ -630,6 +630,5 @@ Future enhancements planned:
 ---
 
 For more information, see:
-- [Main README](../../README.md)
-- [OpenAPI Specification](openapi.yaml)
-- [Walkthrough Documentation](../../.gemini/antigravity/brain/1a9240d3-eaa8-4874-b2db-efdd780015d2/walkthrough.md)
+- [Main README](../README.md)
+- [OpenAPI Specification](../src/inference_server/openapi.yaml)
