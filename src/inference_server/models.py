@@ -12,7 +12,6 @@ Models:
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, Text, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 import enum
 
 Base = declarative_base()

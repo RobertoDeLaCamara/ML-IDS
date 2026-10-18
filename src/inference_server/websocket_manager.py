@@ -5,7 +5,7 @@ Manages WebSocket connections and broadcasts alerts to connected clients.
 """
 
 import logging
-from typing import List, Set
+from typing import Set
 from fastapi import WebSocket
 import json
 

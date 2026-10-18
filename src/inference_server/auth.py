@@ -6,9 +6,9 @@ and query-parameter authentication for WebSocket connections.
 
 import logging
 import os
-from typing import List, Optional
+from typing import List
 
-from fastapi import HTTPException, WebSocket
+from fastapi import WebSocket
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse

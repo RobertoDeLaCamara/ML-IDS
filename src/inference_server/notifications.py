@@ -10,7 +10,7 @@ import aiohttp
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Dict, Any, List
+from typing import Dict, List
 from datetime import datetime
 
 from .models import NotificationChannel, NotificationChannelType, Alert

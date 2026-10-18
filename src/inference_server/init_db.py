@@ -13,12 +13,11 @@ import asyncio
 import os
 import sys
 import logging
-from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.inference_server.database import init_db, get_db, is_db_available
+from src.inference_server.database import init_db, get_db
 from src.inference_server.models import (
     AlertRule, NotificationChannel, SeverityLevel,
     NotificationChannelType

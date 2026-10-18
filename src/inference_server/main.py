@@ -2,22 +2,20 @@ import time as _time
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 import pandas as pd
 import os
 import json
-import numpy as np
 import logging
 from dotenv import load_dotenv
 
 from .schemas import PredictionRequest
-from .database import init_db, close_db, health_check as db_health_check, is_db_available, get_db
+from .database import init_db, close_db, health_check as db_health_check, get_db
 from .alert_service import alert_service
 from .auth import APIKeyMiddleware
 from .metrics import metrics_response, PREDICTIONS_TOTAL, PREDICTION_LATENCY, MODEL_LOADED
 from .routers import alerts, incidents, dashboard
 from sqlalchemy.ext.asyncio import AsyncSession
-import yaml
 
 # FastAPI app with OpenAPI configuration
 app = FastAPI(
@@ -121,10 +119,10 @@ async def health():
         "database": db_status
     }
 
-import joblib
-import mlflow
-from mlflow.exceptions import MlflowException
-from datetime import datetime as _dt
+import joblib  # noqa: E402
+import mlflow  # noqa: E402
+from mlflow.exceptions import MlflowException  # noqa: E402
+from datetime import datetime as _dt  # noqa: E402
 
 class ModelManager:
     MODEL_CACHE_DIR = os.environ.get("MODEL_CACHE_DIR", "/app/model_cache")

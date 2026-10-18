@@ -5,9 +5,8 @@ API router for incident management endpoints.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
-from sqlalchemy.orm import selectinload
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from ..database import get_db
 from ..models import Incident, Alert, IncidentStatus, SeverityLevel
