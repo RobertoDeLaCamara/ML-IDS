@@ -2,9 +2,9 @@
 API router for alert management endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc
+from sqlalchemy import select, and_, desc, func
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -18,17 +18,22 @@ router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
 @router.get("", response_model=List[AlertResponse])
 async def list_alerts(
+    response: Response,
     severity: Optional[str] = Query(None, description="Filter by severity"),
     src_ip: Optional[str] = Query(None, description="Filter by source IP"),
     attack_type: Optional[str] = Query(None, description="Filter by attack type"),
     acknowledged: Optional[bool] = Query(None, description="Filter by acknowledged status"),
     hours: Optional[int] = Query(24, description="Number of hours to look back"),
-    limit: int = Query(100, le=1000, description="Maximum number of results"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: AsyncSession = Depends(get_db)
 ):
     """
     List alerts with optional filtering.
+
+    The body stays a plain list; pagination metadata is returned in the
+    ``X-Total-Count`` (matches before limit/offset), ``X-Page-Size`` and
+    ``X-Page-Offset`` response headers.
     """
     if db is None:
         raise HTTPException(status_code=503, detail="Database not available")
@@ -66,13 +71,22 @@ async def list_alerts(
     # Order by timestamp descending (newest first)
     query = query.order_by(desc(Alert.timestamp))
     
+    # Total matches, before pagination
+    count_query = select(func.count()).select_from(Alert)
+    if conditions:
+        count_query = count_query.where(and_(*conditions))
+    total = (await db.execute(count_query)).scalar_one()
+
     # Apply pagination
     query = query.limit(limit).offset(offset)
     
     # Execute query
     result = await db.execute(query)
     alerts = result.scalars().all()
-    
+
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Page-Size"] = str(limit)
+    response.headers["X-Page-Offset"] = str(offset)
     return alerts
 
 
