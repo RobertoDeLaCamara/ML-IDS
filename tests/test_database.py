@@ -12,7 +12,7 @@ from datetime import datetime
 # Add src to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.inference_server.database import init_db, get_db, close_db
+import src.inference_server.database as db_module
 from src.inference_server.models import (
     Alert, Incident, Metric, NotificationChannel, AlertRule,
     SeverityLevel, IncidentStatus, NotificationChannelType
@@ -20,35 +20,31 @@ from src.inference_server.models import (
 from sqlalchemy import select
 
 
-# Set test database URL
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://mlids:mlids_password@localhost:5432/mlids_test"
-
-
 @pytest_asyncio.fixture(scope="function")
-async def db_session():
-    """Create test database session"""
-    from src.inference_server.database import async_session_maker, db_available
-    # Initialize database
-    await init_db()
+async def db_session(tmp_path, monkeypatch):
+    """A session on a fresh database, independent of the environment.
 
-    if not db_available or not async_session_maker:
-        yield None
-        await close_db()
-        return
+    SQLite in a temporary file by default, so these tests always run (they used to skip when no
+    PostgreSQL was reachable, which in practice meant they never exercised the persistence layer).
+    Set TEST_DATABASE_URL to run them against another backend; it must be a disposable database.
+    """
+    url = os.getenv("TEST_DATABASE_URL") or f"sqlite+aiosqlite:///{tmp_path / 'mlids_test.db'}"
+    # database.DATABASE_URL is read when init_db() runs, so patching the attribute is enough (setting
+    # os.environ after the import, as this module used to, has no effect)
+    monkeypatch.setattr(db_module, "DATABASE_URL", url)
 
-    async with async_session_maker() as session:
-        yield session
-
-    # Cleanup
-    await close_db()
+    assert await db_module.init_db(), f"could not initialise the test database at {url}"
+    try:
+        # read the session maker AFTER init_db(): it is created there
+        async with db_module.async_session_maker() as session:
+            yield session
+    finally:
+        await db_module.close_db()
 
 
 @pytest.mark.asyncio
 async def test_create_alert(db_session):
     """Test creating an alert"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     alert = Alert(
         attack_type="DDoS",
         severity=SeverityLevel.HIGH,
@@ -71,9 +67,6 @@ async def test_create_alert(db_session):
 @pytest.mark.asyncio
 async def test_create_incident(db_session):
     """Test creating an incident"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     incident = Incident(
         title="Multiple DDoS Attacks",
         description="Several DDoS attacks detected from same source",
@@ -93,9 +86,6 @@ async def test_create_incident(db_session):
 @pytest.mark.asyncio
 async def test_alert_incident_relationship(db_session):
     """Test relationship between alerts and incidents"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     # Create incident
     incident = Incident(
         title="Test Incident",
@@ -133,9 +123,6 @@ async def test_alert_incident_relationship(db_session):
 @pytest.mark.asyncio
 async def test_create_metric(db_session):
     """Test creating a metric"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     metric = Metric(
         metric_name="attacks_per_hour",
         value=42.0,
@@ -154,9 +141,6 @@ async def test_create_metric(db_session):
 @pytest.mark.asyncio
 async def test_create_notification_channel(db_session):
     """Test creating a notification channel"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     channel = NotificationChannel(
         name="Test Slack Channel",
         channel_type=NotificationChannelType.SLACK,
@@ -176,9 +160,6 @@ async def test_create_notification_channel(db_session):
 @pytest.mark.asyncio
 async def test_create_alert_rule(db_session):
     """Test creating an alert rule"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     unique_name = f"Test Rule {uuid.uuid4().hex[:8]}"
     rule = AlertRule(
         name=unique_name,
@@ -203,9 +184,6 @@ async def test_create_alert_rule(db_session):
 @pytest.mark.asyncio
 async def test_query_alerts_by_severity(db_session):
     """Test querying alerts by severity"""
-    if db_session is None:
-        pytest.skip("Database not available")
-    
     # Create alerts with different severities
     for i, severity in enumerate([SeverityLevel.LOW, SeverityLevel.HIGH, SeverityLevel.CRITICAL]):
         alert = Alert(
