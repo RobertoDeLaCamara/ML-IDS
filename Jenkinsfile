@@ -28,14 +28,29 @@ pipeline {
             }
         }
 
-        stage('Lint') {
-            steps {
-                echo 'Running code quality checks...'
-                sh """
-                docker run --rm \
-                    ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} \
-                    sh -c 'pip install --quiet flake8 && flake8 src/ --max-line-length=120 --count --statistics || true'
-                """
+        // Gates: a failure here fails the build (they used to be `|| true` or absent).
+        stage('Quality Gates') {
+            parallel {
+                stage('Lint') {
+                    steps {
+                        echo 'ruff (ruff.toml: pyflakes + pycodestyle errors) on src/ ...'
+                        sh """
+                        docker run --rm \
+                            ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} \
+                            sh -c 'pip install --quiet ruff==0.17.1 && ruff check src'
+                        """
+                    }
+                }
+                stage('Security Scan') {
+                    steps {
+                        echo 'pip-audit on every requirements file, bandit (medium+) on src/ ...'
+                        sh """
+                        docker run --rm \
+                            ${REGISTRY}/${IMAGE_NAME}:\${BUILD_NUMBER} \
+                            sh scripts/ci_security_scan.sh
+                        """
+                    }
+                }
             }
         }
 
@@ -51,6 +66,7 @@ pipeline {
                             python -m pytest tests/ -v \
                                 --junitxml=test-results.xml \
                                 --cov=src \
+                                --cov-fail-under=45 \
                                 --cov-report=xml:coverage.xml \
                                 --cov-report=term-missing \
                                 --disable-warnings
