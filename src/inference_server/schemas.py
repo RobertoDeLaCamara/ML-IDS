@@ -1,5 +1,6 @@
 import math
 from pydantic import BaseModel, Field, field_validator, model_validator
+from datetime import datetime
 from typing import List, Optional
 
 class PredictionRequest(BaseModel):
@@ -156,7 +157,7 @@ class AlertResponse(BaseModel):
     severity: str
     src_ip: str
     dst_ip: Optional[str]
-    timestamp: str
+    timestamp: datetime
     prediction_score: Optional[float]
     acknowledged: bool
     incident_id: Optional[int]
@@ -194,9 +195,9 @@ class IncidentResponse(BaseModel):
     status: str
     severity: str
     assigned_to: Optional[str]
-    created_at: str
-    updated_at: str
-    resolved_at: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: Optional[datetime]
     notes: Optional[str]
     
     class Config:
