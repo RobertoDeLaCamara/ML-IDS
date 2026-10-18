@@ -101,6 +101,7 @@ ML-IDS/
   - [OpenAPI JSON](http://localhost:8000/openapi.json) - OpenAPI 3.0 specification (JSON)
   - [OpenAPI YAML](http://localhost:8000/openapi.yaml) - OpenAPI 3.0 specification (YAML)
 - [Inference Server OpenAPI Spec](src/inference_server/openapi.yaml)
+- [Python API examples](docs/API_EXAMPLES.md) - runnable `requests` / `websockets` snippets for every endpoint
 
 ---
 
