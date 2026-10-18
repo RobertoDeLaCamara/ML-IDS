@@ -169,6 +169,7 @@ https://www.unb.ca/cic/datasets/cic-unsw-nb15.html
   - `notebooks/build_unified_notebook.py` — generates the default-config unified training notebook.
   - `notebooks/ft_transformer_optuna_sweep.py` — 25-trial Optuna sweep + final retrain that produces the production checkpoint.
   - `notebooks/log_to_mlflow.py` — retroactive logging helper.
+  - Running the notebooks needs the Jupyter stack, which is **not** in `requirements.txt` (so the API image does not ship it): `pip install -r requirements.txt -r requirements-notebook.txt`.
 - **Workflow:**
   1. **Data Loading:** Reads features from `Data.csv` (76 CICFlowMeter features) and integer labels from `Label.csv`.
   2. **Stratified 70 / 15 / 15 split** with `random_state=42`.

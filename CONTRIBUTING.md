@@ -14,6 +14,8 @@ Thank you for your interest in contributing! This guide will help you get starte
    ```bash
    python3 -m venv venv && source venv/bin/activate
    pip install -r requirements.txt
+   # only if you work on the notebooks (Jupyter stack, kept out of the API image):
+   pip install -r requirements-notebook.txt
    cp .env.example .env  # if applicable
    ```
 4. Start the infrastructure:
