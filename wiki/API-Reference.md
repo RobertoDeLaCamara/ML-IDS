@@ -86,8 +86,10 @@ GET /api/alerts?severity=high&hours=24&attack_type=DDoS&limit=100&offset=0
 | `hours` | int | 24 | Lookback window in hours |
 | `attack_type` | string | — | Exact match on attack_type |
 | `src_ip` | string | — | Exact match on src_ip |
-| `limit` | int | 100 | Max results |
-| `offset` | int | 0 | Pagination offset |
+| `limit` | int | 100 | Page size, 1–1000 (422 otherwise) |
+| `offset` | int | 0 | Pagination offset, ≥ 0 |
+
+The body is a plain JSON list. Pagination metadata comes in response headers: `X-Total-Count` (matches for the filters, before limit/offset), `X-Page-Size`, `X-Page-Offset`.
 
 **Response 200**:
 ```json

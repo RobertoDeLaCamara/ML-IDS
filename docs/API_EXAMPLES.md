@@ -200,7 +200,7 @@ Expected response:
 ]
 ```
 
-To page through everything, increase `offset` by `limit` until a page comes back shorter than `limit`. Individual alerts are managed with `GET /api/alerts/{id}`, `PUT /api/alerts/{id}`, `POST /api/alerts/{id}/acknowledge` and `DELETE /api/alerts/{id}`.
+To page through everything, increase `offset` by `limit` until `offset` reaches the `X-Total-Count` response header (also available: `X-Page-Size`, `X-Page-Offset`). Individual alerts are managed with `GET /api/alerts/{id}`, `PUT /api/alerts/{id}`, `POST /api/alerts/{id}/acknowledge` and `DELETE /api/alerts/{id}`.
 
 ## `WS /api/dashboard/live` — live alerts
 
