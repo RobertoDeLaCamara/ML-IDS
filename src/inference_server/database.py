@@ -7,9 +7,8 @@ Includes graceful degradation if database is unavailable.
 
 import os
 import logging
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
 from sqlalchemy import text
 
 from .models import Base

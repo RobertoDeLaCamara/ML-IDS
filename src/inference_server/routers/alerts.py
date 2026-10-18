@@ -4,7 +4,7 @@ API router for alert management endpoints.
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, desc
+from sqlalchemy import select, and_, desc
 from typing import List, Optional
 from datetime import datetime, timedelta
 

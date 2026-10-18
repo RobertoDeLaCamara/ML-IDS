@@ -1,0 +1,8 @@
+# Lint gate used by Jenkins (see the Lint stage). Deliberately small: real bugs and dead code
+# (pyflakes F + the pycodestyle E4/E7/E9 error classes), not style. Widen it once it stays clean.
+line-length = 120
+target-version = "py313"
+extend-exclude = ["notebooks", "mlruns", "data"]
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

@@ -11,7 +11,7 @@ Handles:
 
 import os
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
@@ -196,7 +196,7 @@ class AlertService:
         """
         # Get all enabled alert rules
         result = await db.execute(
-            select(AlertRule).where(AlertRule.enabled == True)
+            select(AlertRule).where(AlertRule.enabled == True)  # noqa: E712 - SQLAlchemy column expression
         )
         rules = result.scalars().all()
         
@@ -336,7 +336,7 @@ class AlertService:
         """
         # Get enabled notification channels
         result = await db.execute(
-            select(NotificationChannel).where(NotificationChannel.enabled == True)
+            select(NotificationChannel).where(NotificationChannel.enabled == True)  # noqa: E712 - SQLAlchemy column expression
         )
         channels = result.scalars().all()
         

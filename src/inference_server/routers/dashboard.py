@@ -7,11 +7,10 @@ Provides statistics, timeline data, and real-time updates for the dashboard.
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
-from typing import List, Optional
 from datetime import datetime, timedelta
 
 from ..database import get_db
-from ..models import Alert, Incident, Metric, SeverityLevel, IncidentStatus
+from ..models import Alert, Incident, SeverityLevel, IncidentStatus
 from ..websocket_manager import ws_manager
 from ..auth import verify_ws_api_key
 
@@ -281,5 +280,5 @@ async def websocket_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 
-import logging
+import logging  # noqa: E402
 logger = logging.getLogger(__name__)
