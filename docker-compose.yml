@@ -7,11 +7,17 @@ services:
       context: .
       dockerfile: src/inference_server/Dockerfile
     container_name: ml-ids
+    # Host networking is how the container sniffs the host interface (CIC_INTERFACE).
     network_mode: host
-    privileged: true
+    # Packet capture needs NET_RAW (already in Docker's default set) and NET_ADMIN, not `privileged`
+    # (which would also hand over every host device and switch off seccomp/AppArmor). The default
+    # capability set is kept on purpose: it includes DAC_OVERRIDE, which root needs to write the
+    # bind-mounted ./logs directory when it is owned by another user.
     cap_add:
       - NET_RAW
       - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
     #    depends_on:
     #      postgres:
     #        condition: service_healthy
