@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained.** Its supervised model (the FT-Transformer that is now the CNDS supervised engine) lives on in
+> **[CNDS — Cognitive Network Defense System](https://github.com/RobertoDeLaCamara/Cognitive-Intrusion-Detection-System)**,
+> which combines it with the other detection engines in a single ensemble. Use CNDS for new work; this code is kept read-only for reference.
+
 # Cognitive Intrusion Detection System
 
 Machine Learning-based Intrusion Detection System
